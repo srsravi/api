@@ -1,0 +1,22 @@
+[
+	{
+		"id": 1,
+		"name": "TFS Reference"
+	},
+	{
+		"id": 2,
+		"name": "Self Source"
+	},
+	{
+		"id": 3,
+		"name": "Marketing"
+	},
+	{
+		"id": 4,
+		"name": "Agent"
+	},
+	{
+		"id": 5,
+		"name": "Subscriber"
+	}
+]

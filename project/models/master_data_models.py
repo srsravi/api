@@ -1,0 +1,149 @@
+from sqlalchemy import Column, Integer,INT, String, Text, DateTime, ForeignKey,Boolean
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
+#Base = declarative_base()
+from  .base_model import BaseModel
+class MdUserRole(BaseModel):
+    __tablename__ = "md_user_roles"
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Ensure this is the primary key
+    name = Column(Text, index=True)
+    user = relationship('CustomerModal', back_populates='role_details')
+    admin_user = relationship('AdminUser', back_populates='role_details')
+
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
+class MdUserStatus(BaseModel):
+    
+    __tablename__ = "md_user_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Ensure this is the primary key
+    name = Column(Text )
+    user_status = relationship('CustomerModal', back_populates='status_details')
+    admin_user_status = relationship('AdminUser', back_populates='status_details')
+
+class MdCountries(BaseModel):
+    __tablename__ = "md_countries"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    shortName = Column(String(100), default='')
+    name = Column(String(100), default='' )
+    phoneCode = Column(Integer, default=None)
+    order = Column(Integer, default=None)
+    currencySymbol = Column(String(100), default='' )
+    currencyCode = Column(String(100), default='' )
+    zipcodeLength = Column(Integer, default=10)
+    allowNumAndCharInZipcode = Column(String(100), default='' )
+    mapName = Column(String(100), default="")
+    currency_name = Column(String(100), default='' )
+    #flag = Column(String(100), default='' )
+
+    #user_country = relationship("CustomerModal", back_populates="country_details")
+
+    
+
+#md_states.json
+class MdStates(BaseModel):
+    __tablename__ = "md_states"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name =   Column(String(100),default='' )
+    mapName=  Column(String(100),default='' )
+    countryId = Column(Integer, default=None)
+
+class MdLocations(BaseModel):
+    __tablename__ = "md_locations"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name =   Column(String(100),default='' )
+    stateId=  Column(Integer,default=None)
+    countryId = Column(Integer, default=None)
+
+
+#md_reminder_status
+class MdReminderStatus(BaseModel):
+    
+    __tablename__ = "md_reminder_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    
+
+
+#md_task_status.json
+class MdTaskStatus(BaseModel):
+    __tablename__ = "md_task_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    
+
+#md_tenant_status
+class MdTenantStatus(BaseModel):
+    __tablename__ = "md_tenant_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    
+
+#md_timezone.json
+class MdTimeZone(BaseModel):
+    __tablename__ = "md_timezones"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    zone =  Column(String(55) )
+    name = Column(String(55) )
+
+class MdServiceTypes(BaseModel):
+    __tablename__ = "md_service_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), default='')
+    status = Column(Boolean, default=True)
+    description = Column(Text, default='')
+    user_service = relationship("CustomerModal", back_populates="service_details")
+    
+    
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
+#md_lead_sources
+class MdLeadSources(BaseModel):
+    
+    __tablename__ = "md_lead_sources"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    lead_subscriber = relationship("LoanapplicationModel", back_populates="lead_sourse_details")
+    
+
+#md_profession_types
+class MdProfessionTypes(BaseModel):
+
+    __tablename__ = "md_profession_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    lead_profession = relationship("LoanapplicationModel", back_populates="profession_details")
+
+class MdProfessionSubTypes(BaseModel):
+    __tablename__ = "md_profession_sub_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    profession_type_id = Column(Integer, default=None)
+    lead_profession_sub_type = relationship("LoanapplicationModel", back_populates="profession_sub_type_details")
+
+class mdIncomeTypes(BaseModel):
+    #md_income_types.json ,mdIncomeTypes
+    __tablename__ = "md_income_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    lead_income_type = relationship("LoanapplicationModel", back_populates="income_type_details")
+
+#md_obligation_types.json
+class MdObligationTypes(BaseModel):
+    #md_obligation_types.json MdObligationTypes
+    __tablename__ = "md_obligation_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+
+class MdLoanApplicationStatus(BaseModel):
+    #md_loan_application_status.json MdLoanApplicationStatus
+    __tablename__ = "md_loan_application_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
+    all_applications = relationship("LoanapplicationModel", back_populates="status_details")
+    
+
+

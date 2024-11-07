@@ -1,0 +1,47 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
+#from project.database.database import Base
+from datetime import datetime,timezone
+#Base = declarative_base()
+from .base_model import BaseModel
+
+class AdminUser(BaseModel):
+    __tablename__ = "admin"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tfs_id =  Column(String(30), unique=True,index=True)
+    first_name = Column(String(50))
+    last_name = Column(String(50))
+    name = Column(String(150), default='')
+    password = Column(Text)
+    login_token = Column(Text)
+    token = Column(Text)
+    otp=Column(String(61))
+    email = Column(String(161))
+    mobile_no = Column(String(15))
+    last_login = Column(DateTime, default= datetime.now(timezone.utc))
+    login_count =  Column(Integer, default=0,comment='User Login count') 
+    login_fail_count =  Column(Integer, default=0,comment='User Login Fail count')
+    login_attempt_date = Column(DateTime, default= None,comment='Last Login Attempt date' )
+    date_of_birth = Column(Date, nullable=True, default=None)
+    role_id = Column(Integer, ForeignKey('md_user_roles.id'), nullable=False,default=1)  # Ensure this matches UserRole.id
+    role_details = relationship('MdUserRole', back_populates='admin_user')
+    status_id = Column(Integer, ForeignKey('md_user_status.id'),  nullable=False,default=1)
+    status_details = relationship('MdUserStatus', back_populates='admin_user_status')
+    
+
+    created_by = Column(Integer, default=None)
+    created_by_role = Column(Integer, default=None)
+    
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), default=None, unique=False, index=True)
+    admin_tenant_details = relationship('TenantModel', back_populates='tenant_admin')
+
+    my_users = relationship("CustomerModal", back_populates="created_by_details")
+    my_applications = relationship("LoanapplicationModel", back_populates="created_by_details")
+    
+      
+
+
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True

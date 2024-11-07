@@ -1,0 +1,43 @@
+[
+	{
+		"id": 1,
+		"name": "Home Loan"
+	},
+	{
+		"id": 2,
+		"name": "Personal Loan"
+	},
+	{
+		"id": 3,
+		"name": "Mortgage Loan"
+	},
+    {
+		"id": 4,
+		"name": "Business Loan"
+	},
+    {
+		"id": 5,
+		"name": "Business Loan"
+	},
+    {
+		"id": 6,
+		"name": "Education Loan"
+	},
+    {
+		"id": 7,
+		"name": "Gold Loan"
+	},
+    {
+		"id": 8,
+		"name": "Credit Card Loan"
+	},
+    {
+		"id": 9,
+		"name": "Two Wheeler Loan"
+	},
+    {
+		"id": 10,
+		"name": "Other Loan"
+	}
+
+]

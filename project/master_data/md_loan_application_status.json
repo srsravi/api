@@ -1,0 +1,22 @@
+[
+	{
+		"id": 1,
+		"name": "Application Initiated"
+	},
+	{
+		"id": 2,
+		"name": "Under Verification"
+	},
+	{
+		"id": 3,
+		"name": "Approve"
+	},
+	{
+		"id": 4,
+		"name": "On-Hold"
+	},
+	{
+		"id": 5,
+		"name": "Reject"
+	}
+]

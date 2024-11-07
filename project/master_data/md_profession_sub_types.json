@@ -1,0 +1,28 @@
+[
+	{
+		"id": 1,
+		"name": "Doctor",
+        "profession_type_id":3
+	},
+	{
+		"id": 2,
+		"name": "CA",
+        "profession_type_id":3
+	},
+	{
+		"id": 3,
+		"name": "Lawyer",
+        "profession_type_id":3
+	},
+	{
+		"id": 4,
+		"name": "Engineer",
+        "profession_type_id":3
+	},
+	{
+		"id": 5,
+		"name": "Others",
+        "profession_type_id":3
+	}
+	
+]
