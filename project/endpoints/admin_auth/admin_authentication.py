@@ -458,7 +458,7 @@ async def invitation_mail(request:addSalesUserSchema,background_tasks: Backgroun
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
     
-@router.post("/reset-password", response_description="Forgot Password")
+@router.post("/set-password", response_description="Forgot Password")
 async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
         user_id = request.user_id
@@ -468,12 +468,18 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         else:
+            if user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
+            elif user_obj.status_id == 5:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+            
             token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
             if token_data is None:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
             user_obj.token = ''
             user_obj.otp = ''
             user_obj.password =AuthHandler().get_password_hash(password)
+            user_obj.status_id = 3
             user_obj.login_fail_count = 0
             token_data.active = False
             db.commit()
