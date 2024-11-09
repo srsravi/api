@@ -478,6 +478,10 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             if token_data is None:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
             tokendata = AuthHandler().decode_otp_token(token_data.token)
+            
+            if tokendata in None :
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
+            
             user_obj.token = ''
             user_obj.otp = ''
             user_obj.password =AuthHandler().get_password_hash(password)
@@ -493,6 +497,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
     except Exception as E:
+        print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 

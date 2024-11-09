@@ -52,7 +52,7 @@ class AuthHandler:
             response.update(status=401, message="The time you were taken has expired!", error=[], data={},code="OTP_EXPIRED")
             raise HTTPException(status_code=401, detail=response)
         except jwt.InvalidTokenError as e:
-            print(e)
+            
             response = {}
             response.update(status=401, message="Invalied otp", error=[], data={},code="INVALIED_OTP")
             raise HTTPException(status_code=401, detail=response)
