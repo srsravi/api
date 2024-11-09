@@ -53,7 +53,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 # Add middleware to the FastAPI app
-app.add_middleware(RateLimitMiddleware)
+#app.add_middleware(RateLimitMiddleware)
 
 # Custom error response format
 def format_error_details(errors: List[Dict[str, Any]]) -> Dict[str, Any]:
