@@ -474,8 +474,10 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
             
             token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
+            
             if token_data is None:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
+            tokendata = AuthHandler().decode_otp_token(token_data.token)
             user_obj.token = ''
             user_obj.otp = ''
             user_obj.password =AuthHandler().get_password_hash(password)
