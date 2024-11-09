@@ -206,10 +206,8 @@ async def get_benficiary( request: GetUserDetailsReq,auth_user=Depends(AuthHandl
         response_data["tenant_details"] = Utility.model_to_dict(user_obj.tenant_details)
         response_data["role_details"] = Utility.model_to_dict(user_obj.role_details)
         response_data["status_details"] = Utility.model_to_dict(user_obj.status_details)
-        response_data["country_details"] = Utility.model_to_dict(user_obj.country_details)
-        response_data["kyc_status"] = Utility.model_to_dict(user_obj.kyc_status)
-        if user_obj.kyc_details is not None:
-            response_data["kyc_details"] = Utility.model_to_dict(user_obj.kyc_details)
+        #response_data["country_details"] = Utility.model_to_dict(user_obj.country_details)
+        #response_data["kyc_status"] = Utility.model_to_dict(user_obj.kyc_status)
         
         if "login_fail_count" in response_data:
             del response_data["login_fail_count"]

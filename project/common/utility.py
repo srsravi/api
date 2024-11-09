@@ -198,7 +198,9 @@ class Utility:
         elif "tenant_id" in user_data and user_data["tenant_id"] is not None:
             socket_id = f'''{user_data['tenant_id']}_{user_data["id"]}_{user_data["role_id"]}'''
         return socket_id    
-
+    @staticmethod
+    def generate_tfs_code(role_id):
+        return "TFS"
     # def inactive_previous_tokens(db =None,category:str='',user_id:int=0):
     #     try:
     #         if db is not None and category and user_id>0:

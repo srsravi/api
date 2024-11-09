@@ -407,3 +407,15 @@ class AdminRegister(BaseModel):
         except NumberParseException:
             raise ValueError("Invalid phone number format")
     '''
+
+
+class addSalesUserSchema(BaseModel):
+    email:EmailStr
+    first_name: str
+    last_name: str
+    mobile_no: str
+    experience:float
+    profile_image:Optional[str]
+    role_id:int
+    tenant_id:Optional[int]
+    

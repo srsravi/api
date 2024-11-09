@@ -5,8 +5,9 @@ from ...models.admin_user import AdminUser
 from ...models.master_data_models import MdUserRole,MdUserStatus
 
 from . import APIRouter,Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.register import TenantSchema,TenantInvitationSchema,AdminRegister,InvitationSchema,TenantUserSchema,resetPassword,ForgotPasswordLinkSchema,SetPasswordSchema,UpdateAdminPassword,ForgotPassword
+from ...schemas.register import addSalesUserSchema, TenantSchema,TenantInvitationSchema,AdminRegister,InvitationSchema,TenantUserSchema,resetPassword,ForgotPasswordLinkSchema,SetPasswordSchema,UpdateAdminPassword,ForgotPassword
 import re
+from ...schemas.register import addSalesUserSchema
 from ...schemas.login import Login
 from fastapi import BackgroundTasks
 from ...common.mail import Email
@@ -396,7 +397,97 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
         print(E)
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+@router.post("/add-user", response_description="add user")
+async def invitation_mail(request:addSalesUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        if login_user["role_id"] not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
+       
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if not re.fullmatch(email_regex, request.email):
+            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
+       
+        user_id=login_user["id"]
+        if login_user["role_id"] ==1:
+            tenant_id=request.tenant_id
+        else:
+            tenant_id=login_user["tenant_id"]
+        email = request.email
+        first_name =  request.first_name
+        last_name  =  request.last_name
+        mobile_no  =  request.mobile_no
+        experience =  request.experience
+        role_id    =  request.role_id
+        otp=str(Utility.generate_otp())
+        #profile_image =  request.first_name
+        exist_user=db.query(AdminUser).filter(AdminUser.email==request.email).first()
+        if exist_user:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Email already exists", error=[], data={})
+        password=AuthHandler().get_password_hash(otp)
+        name = first_name
+        if first_name and last_name:
+            name = first_name+" "+last_name
+        user_data={"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        new_user = AdminUser(**user_data)
+        db.add(new_user)
+        db.commit()
+        if new_user.id:
+            if experience:
+                new_user.experience = experience
+            category="ADD_USER"
+            user_dict={"user_id":new_user.id,"catrgory":category,"otp":otp}
+            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":role_id,"email":request.email,"name":name})
+            user_dict["token"]=token
+            user_dict["ref_id"]=new_user.id
+            db.add(tokensModel(**user_dict))
+            
+            link = f'''{WEB_URL}set-password?token={token}&user_id={new_user.id}'''
+            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='add_user.html',data={"name":name,"link":link})
+            tfs_id = Utility.generate_tfs_code(role_id)
+            new_user.tfs_id = f"{tfs_id}-{new_user.id}"
+            db.commit()
+            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[], data={})
+        else:
+            db.rollback()
+            return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
     
+@router.post("/reset-password", response_description="Forgot Password")
+async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+    try:
+        user_id = request.user_id
+        token = str(request.token)
+        password =  request.password
+        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
+            if token_data is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
+            user_obj.token = ''
+            user_obj.otp = ''
+            user_obj.password =AuthHandler().get_password_hash(password)
+            user_obj.login_fail_count = 0
+            token_data.active = False
+            db.commit()
+            rowData = {}
+            rowData["user_id"] = user_obj.id
+            rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
+            background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
+            #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+            return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
+        
+    except Exception as E:
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
 @router.post("/invite-user", response_description="invitation mail for maker checker")
 async def invitation_mail(request:InvitationSchema,background_tasks: BackgroundTasks,admin_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
