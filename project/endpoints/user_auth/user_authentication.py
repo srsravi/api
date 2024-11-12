@@ -118,22 +118,40 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
 @router.post("/signup-customer", response_description="Customer Signup")
 async def register(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
-        
+        tenant_id = 1
         mobile_no = request.mobile_no
         email = request.email
-        country_id = request.country_id
+        first_name = request.first_name
+        last_name = request.last_name
+        if request.tenant_id is not None:
+            tenant_id = request.tenant_id
+        service_type_id = request.service_type_id
         email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         if not re.fullmatch(email_regex, email):
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
-        
-        
         if len(str(mobile_no)) < 7 or len(str(mobile_no)) > 15:
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_MOBILE,error=[], data={})
         user_obj = db.query(CustomerModal).filter(CustomerModal.email == email)
+        otp =str(Utility.generate_otp())
+        name =  first_name
+        category ="SIGNUP_CUSTOMER"
+        if last_name:
+            name = f"{first_name} last_name"
         if user_obj.count() <=0:
-            user_data = CustomerModal(role_id =2,status_id=1, email=email,country_id=country_id, mobile_no=mobile_no,password=str(Utility.uuid()),tenant_id=1)
+            user_data = CustomerModal(
+                                      first_name=first_name,
+                                      last_name=last_name,
+                                      name=name,
+                                      role_id =5,
+                                      status_id=1,
+                                      email=email,
+                                      mobile_no=mobile_no,
+                                      password=str(Utility.uuid()),
+                                      tenant_id=tenant_id,
+                                      service_type_id=service_type_id
+                                      )
             #Send Mail to user with active link
-            mail_data = {"body":"Welcome to M-Remmitance"}
+            mail_data = {"body":"Welcome to TFS"}
             db.add(user_data)
             db.flush()
             db.commit()
@@ -143,10 +161,19 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
                 rowData['user_id'] = udata["id"]
                 rowData['first_name'] = udata.get("first_name","")
                 rowData['last_name'] = udata.get("last_name","")
-                rowData['country_id'] = udata.get("country_id",None)
                 rowData['mobile_no'] = udata.get("mobile_no",'')
                 rowData['date_of_birth'] = udata.get("date_of_birth",'')
-                rowData["country_details"] = Utility.model_to_dict(user_data.country_details)
+                mail_data = {}
+                mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                mail_data["otp"] = otp
+                
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":request.email,"name":name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=udata["id"]
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail,recipient_email=[udata["email"]], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
                 return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
             else:
                 db.rollback()
@@ -163,7 +190,6 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             rowData['mobile_no'] = udata.get("mobile_no",'')
             rowData['date_of_birth'] = udata.get("date_of_birth",'')
             rowData['status_id'] = existing_user.status_id
-            rowData["country_details"] = Utility.model_to_dict(existing_user.country_details)
             rowData["status_details"] = Utility.model_to_dict(existing_user.status_details)
             
             #del existing_user.otp
@@ -171,19 +197,20 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             if existing_user.status_id == 1 or existing_user.status_id ==2:
                 msg = all_messages.ACCOUNT_EXISTS_PENDING_EMAIL_VERIFICATION
                 code = "SIGNUP_VERIFICATION_PENDING"                
-                if existing_user.status_id ==2:
-                    otp =str(Utility.generate_otp())
-                    mail_data = {}
-                    mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
-                    mail_data["otp"] = otp
-                    background_tasks.add_task(Email.send_mail,recipient_email=[udata["email"]], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
-                    user_obj.update({ CustomerModal.otp:str(otp)}, synchronize_session=False)
-                    db.flush()
-                    db.commit()
-                    
-                if  existing_user.status_id ==1:
-                    code = "SIGNUP_PROCESS_PENDING"
-                    msg =all_messages.SIGNUP_PROCESS_PENDING                           
+                
+                mail_data = {}
+                mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                mail_data["otp"] = otp
+                
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":request.email,"name":name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=udata["id"]
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail,recipient_email=[udata["email"]], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
+                   
+                
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=msg, error=[], data=rowData,code=code)
             elif  existing_user.status_id == 3:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_PROFILE_IS_ACTIVE")
