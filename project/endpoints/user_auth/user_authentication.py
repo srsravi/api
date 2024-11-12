@@ -1,7 +1,7 @@
 from datetime import datetime, timezone,timedelta
 from sqlalchemy import and_
 from datetime import datetime
-from ...models.user_model import CustomerModal
+from ...models.user_model import CustomerModal,LoanapplicationModel
 from ...models.master_data_models import MdUserRole,MdUserStatus
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
@@ -23,100 +23,121 @@ router = APIRouter(
 )
 #createCustomerSchema
 @router.post("/invite-customer", response_description="Invite Customer")
-async def invite_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+async def invite_customer(request: createCustomerSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
+        tenant_id = 1
+        mobile_no = request.mobile_no
         email = request.email
         first_name = request.first_name
         last_name = request.last_name
-        contact = request.mobile_no
+        if request.tenant_id is not None:
+            tenant_id = request.tenant_id
         service_type_id = request.service_type_id
-        otp = Utility.generate_otp(6)
-        password = AuthHandler().get_password_hash(str(otp))
-        tenant_id =1
-        if "tenant_id" in auth_user:
-            tenant_id = tenant_id
-        user_data = db.query(CustomerModal).filter(CustomerModal.email == email).first()
-        if user_data is not None:
-            if user_data.status_id==3:
-                return Utility.json_response(status=FAIL, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data={})
-            elif user_data.status_id==2:
-                #verification is not completed
-                category ="INVITE_CUSTOMER"
-                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = user_data.id)
-                user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp}
-                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_data.role_id,"email":user_data.email,"name":user_data.name})
-                user_dict["token"]=token
-                user_dict["ref_id"]=auth_user["id"]
-                user_data.otp =otp
-                db.add(tokensModel(**user_dict))
-                db.commit()
-                mail_data = {}
-                mail_data["name"]= f'''{user_data.first_name} {user_data.last_name}'''
-                mail_data["otp"] = otp
-                background_tasks.add_task(Email.send_mail,recipient_email=[user_data.email], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
-                return Utility.json_response(status=SUCCESS, message=all_messages.ACCOUNT_EXISTS_PENDING_EMAIL_VERIFICATION, error=[], data={"user_id": user_data.id})
-            
-            else:
-                #verification is not completed
-                return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
-        else:
-            email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-            if not re.fullmatch(email_regex, email):
-                return Utility.json_response(status=FAIL, message="Provide valid email", error=[], data={})
-            if len(str(contact)) < 7 or len(str(contact)) > 15:
-                return Utility.json_response(status=FAIL, message="Mobile number not valid. Length must be 7-13.", error=[], data={})
-            
-            
-            user_data = CustomerModal(email=email,
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if not re.fullmatch(email_regex, email):
+            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
+        if len(str(mobile_no)) < 7 or len(str(mobile_no)) > 15:
+            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_MOBILE,error=[], data={})
+        user_obj = db.query(CustomerModal).filter(CustomerModal.email == email)
+        otp =str(Utility.generate_otp())
+        name =  first_name
+        category ="SIGNUP_CUSTOMER"
+        if last_name:
+            name = f"{first_name} last_name"
+        if user_obj.count() <=0:
+            user_data = CustomerModal(
+                                    
                                       first_name=first_name,
-                                      last_name =last_name,
-                                      name =f"{first_name} {last_name}",
-                                      mobile_no=contact,
-                                      password=password,
-                                      service_type_id=service_type_id,
-                                      tenant_id=tenant_id,
-                                      role_id=5,
+                                      last_name=last_name,
+                                      name=name,
+                                      role_id =5,
                                       status_id=2,
-                                      created_by=auth_user["id"],
-                                      otp=otp
-                                      
+                                      email=email,
+                                      mobile_no=mobile_no,
+                                      password=str(Utility.uuid()),
+                                      tenant_id=tenant_id,
+                                      service_type_id=service_type_id
                                       )
+            #Send Mail to user with active link
+            mail_data = {"body":"Welcome to TFS"}
             db.add(user_data)
-            
+            db.flush()
             db.commit()
             if user_data.id:
-                if request.reference_id:
-                    refere_data = db.query(AdminUser).filter(AdminUser.tfs_id == request.reference_id).first()
-                    if refere_data is not None:
-                        user_data.referer_id=refere_data.id
-                        user_data.tfs_id =f"TFS-M{user_data.id}{Utility.generate_otp(4)}"
-                #send Notification  to user and share first time password
-                category ="INVITE_CUSTOMER"
-                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = user_data.id)
-                user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp}
-                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_data.role_id,"email":user_data.email,"name":user_data.name})
-                user_dict["token"]=token
-                user_dict["ref_id"]=auth_user["id"]
+                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id)
+                db.add(new_lead)
+                user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+                udata =  Utility.model_to_dict(user_data)
+                rowData = {}
+                rowData['user_id'] = udata["id"]
+                rowData['first_name'] = udata.get("first_name","")
+                rowData['last_name'] = udata.get("last_name","")
+                rowData['mobile_no'] = udata.get("mobile_no",'')
+                rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                otp = str(Utility.generate_otp())
+                category = "ADD_USER"
+                link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={user_data.id}'''
+                token = AuthHandler().encode_token({"user_id":user_data.id,"catrgory":category,"otp":otp,"invite_role_id":user_data.role_id,"email":user_data.email,"name":user_data.name})
+                user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp,"token":token,"ref_id":user_data.id}
                 db.add(tokensModel(**user_dict))
                 db.commit()
-                mail_data = {}
-                mail_data["name"]= f'''{user_data.first_name} {user_data.last_name}'''
-                mail_data["otp"] = otp
-                background_tasks.add_task(Email.send_mail,recipient_email=[user_data.email], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
-                return Utility.json_response(status=SUCCESS, message="Custeromer Registered Successfully", error=[], data={"user_id": user_data.id})
-            
+                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
             else:
-                return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
-        
-
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+        else:
+            otp =str(Utility.generate_otp())
+            existing_user = user_obj.one()
+            udata =  Utility.model_to_dict(existing_user)
+            rowData = {}
+            rowData['user_id'] = udata["id"]
+            rowData['email'] = udata.get("email","")
+            rowData['first_name'] = udata.get("first_name","")
+            rowData['last_name'] = udata.get("last_name","")
+            rowData['country_id'] = udata.get("country_id",None)
+            rowData['mobile_no'] = udata.get("mobile_no",'')
+            rowData['date_of_birth'] = udata.get("date_of_birth",'')
+            rowData['status_id'] = existing_user.status_id
+            rowData["status_details"] = Utility.model_to_dict(existing_user.status_details)
+            
+            #del existing_user.otp
+            #del existing_user.password
+            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+            link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
+          
+            user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp}
+            user_dict["token"]=new_token
+            user_dict["ref_id"]=existing_user.id
+            if  existing_user.status_id == 1 or existing_user.status_id == 2 :
+                otp = str(Utility.generate_otp())
+                category = "ADD_USER"
+                token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+                user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp,"token":token,"ref_id":existing_user.id}
+                
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail, recipient_email=[existing_user.email], subject="Welcome to TFS", template='add_user.html',data={"name":existing_user.name,"link":link})
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+            
+            elif  existing_user.status_id == 3:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_USER_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_USER_PROFILE_IS_ACTIVE")
+            elif existing_user.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_PROFILE_INACTIVE, error=[], data=rowData)
+            elif existing_user.status_id == 5:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_PROFILE_DELETED, error=[], data=rowData)
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
+        
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/signup-customer", response_description="Customer Signup")
-async def register(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+async def register_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
         tenant_id = 1
         mobile_no = request.mobile_no
@@ -157,6 +178,8 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             db.flush()
             db.commit()
             if user_data.id:
+                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id)
+                db.add(new_lead)
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)
                 rowData = {}

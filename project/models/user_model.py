@@ -113,6 +113,11 @@ class LoanapplicationModel(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
     subscriber = relationship("CustomerModal", back_populates="subscriber_details")
+
+    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
+    detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
+    
+
     application_form_id = Column(String(20), default=None)
     loan_amount = Column(Float, primary_key=True)
     lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"), default=None, unique=False, index=True)

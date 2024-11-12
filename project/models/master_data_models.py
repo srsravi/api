@@ -94,6 +94,7 @@ class MdServiceTypes(BaseModel):
     status = Column(Boolean, default=True)
     description = Column(Text, default='')
     user_service = relationship("CustomerModal", back_populates="service_details")
+    service_lonas_list = relationship("LoanapplicationModel", back_populates="detail_of_service")
     
     
     class Config:
