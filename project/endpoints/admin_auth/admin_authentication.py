@@ -101,7 +101,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         name = first_name
         if first_name and last_name:
             name = first_name+" "+last_name
-        user_data={"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        user_data={"experience":experience,"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
         new_user = AdminUser(**user_data)
         db.add(new_user)
         db.commit()
@@ -547,12 +547,15 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
             )
         if filter_data.tenant_id:
             query = query.filter(AdminUser.tenant_id.in_(filter_data.tenant_id))
+        else:
+            if auth_user.get("role_id", -1) in [2] and "tenant_id" in auth_user:
+                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+
         if filter_data.role_id:
             query = query.filter(AdminUser.role_id.in_(filter_data.role_id))
         if filter_data.status_ids:
             query = query.filter(AdminUser.status_id.in_(filter_data.status_ids))
-        if filter_data.country_id:
-            query = query.filter(AdminUser.country_id.in_(filter_data.country_id))
+        
         # Total count of users matching the filters
         total_count = query.count()
         sort_column = getattr(AdminUser, filter_data.sort_by, None)

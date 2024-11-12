@@ -189,6 +189,7 @@ class AdminUserListResponse(BaseModel):
     tenant_id: Optional[int] = None
     role_id: int
     status_id: int
+    experience:Optional[float] = None
     #country_id: Optional[int] = None
     #state_id: Optional[int] = None
     #location_id: Optional[int] = None
