@@ -280,6 +280,7 @@ async def verify_account(request: VerifyAccount,background_tasks: BackgroundTask
                 if otp ==  token_data.otp:
                     user_obj.status_id = 2
                     user_obj.otp = ''
+                    token_data.active = False
                     db.commit()
                     mail_data ={"name": user_obj.first_name+" "+user_obj.last_name }
                     #background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Welcome to TFS!", template='signup_welcome.html',data=mail_data )
