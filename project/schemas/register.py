@@ -219,7 +219,7 @@ class SignupOtp(BaseModel):
 
 class ForgotPassword(BaseModel):
     email: EmailStr = Field(..., description="The email address of the user.")
-    date_of_birth: date = Field(..., description="Must be at least 18 years old. And format should be YYYY-MM-DD")
+    #date_of_birth: date = Field(..., description="Must be at least 18 years old. And format should be YYYY-MM-DD")
 
     # @field_validator('date_of_birth', mode='before')
     # def validate_date_of_birth(cls, v, info):

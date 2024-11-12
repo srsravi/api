@@ -158,7 +158,8 @@ class UserFilterRequest(ListRequestBase):
     get_kyc_users:Optional[bool] = False
     #accepted_terms: Optional[bool] = None
 
-    
+class GetBranchListRequestSchema(ListRequestBase):
+      status_ids: Optional[List[int]] = None
 
     
 class CountryResponse(BaseModel):
@@ -213,6 +214,19 @@ class AdminUserListResponse(BaseModel):
         #orm_mode = True
         from_attributes = True
         str_strip_whitespace = True
+
+class BranchList(BaseModel):
+    id: int
+    name: Optional[str] = None
+    email: str
+    mobile_no: Optional[str] = None
+
+class BranchListResponseSchema(BaseModel):
+    total_count: int
+    list: List[BranchList]
+    page: int
+    per_page: int
+
 class PaginatedAdminUserResponse(BaseModel):
     total_count: int
     list: List[AdminUserListResponse]

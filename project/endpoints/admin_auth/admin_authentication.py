@@ -25,7 +25,7 @@ from sqlalchemy.orm import  joinedload
 from sqlalchemy import desc, asc
 from sqlalchemy.sql import select, and_, or_, not_,func
 from datetime import date, datetime,timezone,timedelta
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,PaginatedAdminUserResponse,PaginatedBeneficiaryResponse,GetUserDetailsReq,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...schemas.user_schema import UpdatePassword,UserFilterRequest,GetBranchListRequestSchema,PaginatedAdminUserResponse,BranchListResponseSchema,GetUserDetailsReq,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -70,6 +70,112 @@ async def register(request: AdminRegister, db: Session = Depends(get_database_se
         print(E)
         db.rollback()
         return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
+
+@router.post("/add-user", response_description="add user")
+async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        if login_user["role_id"] not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
+       
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if not re.fullmatch(email_regex, request.email):
+            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
+       
+        user_id=login_user["id"]
+        if login_user["role_id"] ==1:
+            tenant_id=request.tenant_id
+        else:
+            tenant_id=login_user["tenant_id"]
+        email = request.email
+        first_name =  request.first_name
+        last_name  =  request.last_name
+        mobile_no  =  request.mobile_no
+        experience =  request.experience
+        role_id    =  request.role_id
+        otp=str(Utility.generate_otp())
+        #profile_image =  request.first_name
+        exist_user=db.query(AdminUser).filter(AdminUser.email==request.email).first()
+        if exist_user:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Email already exists", error=[], data={})
+        password=AuthHandler().get_password_hash(otp)
+        name = first_name
+        if first_name and last_name:
+            name = first_name+" "+last_name
+        user_data={"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        new_user = AdminUser(**user_data)
+        db.add(new_user)
+        db.commit()
+        if new_user.id:
+            if experience:
+                new_user.experience = experience
+            category="ADD_USER"
+            user_dict={"user_id":new_user.id,"catrgory":category,"otp":otp}
+            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":role_id,"email":request.email,"name":name})
+            user_dict["token"]=token
+            user_dict["ref_id"]=new_user.id
+            db.add(tokensModel(**user_dict))
+            
+            link = f'''{WEB_URL}set-password?token={token}&user_id={new_user.id}'''
+            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='add_user.html',data={"name":name,"link":link})
+            tfs_id = Utility.generate_tfs_code(role_id)
+            new_user.tfs_id = f"{tfs_id}-{new_user.id}"
+            db.commit()
+            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[], data={})
+        else:
+            db.rollback()
+            return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+@router.post("/set-password", response_description="Forgot Password")
+async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+    try:
+        user_id = request.user_id
+        token = str(request.token)
+        password =  request.password
+        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
+            elif user_obj.status_id == 5:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+            
+            token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
+            
+            if token_data is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
+            
+            tokendata = AuthHandler().decode_otp_token(token_data.token)
+            
+            if tokendata is None :
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
+            
+            user_obj.token = ''
+            user_obj.otp = ''
+            user_obj.password =AuthHandler().get_password_hash(password)
+            user_obj.status_id = 3
+            user_obj.login_fail_count = 0
+            token_data.active = False
+            
+            db.commit()
+            rowData = {}
+            rowData["user_id"] = user_obj.id
+            rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
+            background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
+            #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+            return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
+        
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 
 @router.post("/login", response_description="Login")
@@ -211,6 +317,133 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+@router.post("/forgot-password", response_description="Forgot Password")
+async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+    try:
+        
+        email = request.email
+        #date_of_birth = request.date_of_birth
+        user_obj = db.query(AdminUser).filter(AdminUser.email == email).first()
+        
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id ==2 or user_obj.status_id ==3 :
+                # if user_obj.date_of_birth != date_of_birth:
+                #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
+                
+                rowData = {}
+                udata = Utility.model_to_dict(user_obj)
+                rowData['user_id'] = udata["id"]
+                rowData['email'] = user_obj.email
+                rowData['first_name'] = user_obj.first_name
+                rowData['last_name'] = user_obj.last_name
+                #rowData['country_id'] = user_obj.country_id
+                #rowData['mobile_no'] = udata.get("mobile_no",'')
+                #rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                rowData['status_id'] = user_obj.status_id            
+                otp =Utility.generate_otp()
+                #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+                rowData["otp"] = otp
+                rowData["user_id"] = user_obj.id
+                rowData['name'] = f"""{user_obj.name}"""
+                
+                category ="ADMIN_FORGOT_PASSWORD"
+                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=user_obj.id
+                db.add(tokensModel(**user_dict))
+                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                db.commit()
+
+                background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
+                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
+            
+            elif  user_obj.status_id == 1:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
+            elif  user_obj.status_id == 2:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
+            elif user_obj.status_id == 3:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
+            elif user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/resend-activation-link", response_description="Resend Activation Link")
+async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+
+        if auth_user["role_id"] not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+
+        
+        email = request.email
+        user_obj = db.query(AdminUser).filter(AdminUser.email == email).first()
+        if auth_user["role_id"]==2:
+            if user_obj.tenant_id != auth_user["tenant_id"]:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id ==2 or user_obj.status_id ==3 :
+                # if user_obj.date_of_birth != date_of_birth:
+                #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
+                
+                rowData = {}
+                udata = Utility.model_to_dict(user_obj)
+                rowData['user_id'] = udata["id"]
+                rowData['email'] = user_obj.email
+                rowData['first_name'] = user_obj.first_name
+                rowData['last_name'] = user_obj.last_name
+                #rowData['country_id'] = user_obj.country_id
+                #rowData['mobile_no'] = udata.get("mobile_no",'')
+                #rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                rowData['status_id'] = user_obj.status_id            
+                otp =Utility.generate_otp()
+                #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+                rowData["otp"] = otp
+                rowData["user_id"] = user_obj.id
+                rowData['name'] = f"""{user_obj.name}"""
+                
+                category ="ADMIN_FORGOT_PASSWORD"
+                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=user_obj.id
+                db.add(tokensModel(**user_dict))
+                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                db.commit()
+
+                background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
+                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
+            
+            elif  user_obj.status_id == 1:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
+            elif  user_obj.status_id == 2:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
+            elif user_obj.status_id == 3:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
+            elif user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/update-password", response_description="Update Admin Password")
 async def reset_password(request: UpdateAdminPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
@@ -235,106 +468,55 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
     except Exception as E:
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
- 
-@router.post("/forgot-password", response_description="Forgot Password")
-async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+@router.post("/get-branch-list", response_model=BranchListResponseSchema, response_description="Fetch Users List")
+async def get_users(filter_data: GetBranchListRequestSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
+        #user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        #AuthHandler().user_validate(user_obj)
+        # if auth_user.get("role_id", -1) not in [1]:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
         
-        email = request.email
-        date_of_birth = request.date_of_birth
-        user_obj = db.query(AdminUser).filter(AdminUser.email == email).first()
+        query = db.query(TenantModel)
         
-        if user_obj is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
-        else:
-            if user_obj.status_id ==3:
-                if user_obj.date_of_birth != date_of_birth:
-                    return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
-                else:
-                    rowData = {}
-                    udata = Utility.model_to_dict(user_obj)
-                    rowData['user_id'] = udata["id"]
-                    rowData['email'] = user_obj.email
-                    rowData['first_name'] = user_obj.first_name
-                    rowData['last_name'] = user_obj.last_name
-                    #rowData['country_id'] = user_obj.country_id
-                    #rowData['mobile_no'] = udata.get("mobile_no",'')
-                    #rowData['date_of_birth'] = udata.get("date_of_birth",'')
-                    rowData['status_id'] = user_obj.status_id            
-                    otp =Utility.generate_otp()
-                    #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
-                    rowData["otp"] = otp
-                    rowData["user_id"] = user_obj.id
-                    rowData['name'] = f"""{user_obj.name}"""
-                    
-                    category ="ADMIN_FORGOT_PASSWORD"
-                    Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
-                    user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-                    token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
-                    user_dict["token"]=token
-                    user_dict["ref_id"]=user_obj.id
-                    db.add(tokensModel(**user_dict))
-                    rowData["reset_link"] = f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
-                    db.commit()
-
-                    background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
-                    return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
-                
-            elif  user_obj.status_id == 1:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
-            elif  user_obj.status_id == 2:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
-            elif user_obj.status_id == 3:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
-            elif user_obj.status_id == 4:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter(
+                or_(
+                    TenantModel.name.ilike(search),
+                    TenantModel.email.ilike(search),
+                    TenantModel.mobile_no.ilike(search)
+                )
+            )
+        
+        # Total count of users matching the filters
+        total_count = query.count()
+        sort_column = getattr(TenantModel, filter_data.sort_by, None)
+        if sort_column:
+            
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
             else:
-                db.rollback()
-                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+                query = query.order_by(asc(sort_column))
+        else:
+            query = query.order_by(desc("id"))
 
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        # Create a paginated response
+        rows =[]
+        for row in paginated_query:
+            rows.append(Utility.model_to_dict(row))
+        return BranchListResponseSchema(
+            total_count=total_count,
+            list=rows,
+            page=filter_data.page,
+            per_page=filter_data.per_page
+        )
     except Exception as E:
         print(E)
         db.rollback()
-        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
-@router.post("/reset-password", response_description="Forgot Password")
-async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
-    try:
-        user_id = request.user_id
-        token = str(request.token)
-        password =  request.password
-        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
-        if user_obj is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
-        if  user_obj.status_id == 1:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PENDING_PROFILE_COMPLATION")
-        elif  user_obj.status_id == 2:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="PENDING_EMAIL_VERIFICATION")
-        elif user_obj.status_id == 4:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
-    
-        else:
-            category ="ADMIN_FORGOT_PASSWORD"
-            token_query = db.query(tokensModel).filter(tokensModel.catrgory ==category, tokensModel.user_id==user_id, tokensModel.token == token,tokensModel.active==True).first()
-            if token_query is None:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALIED_TOKEN, error=[], data={},code="")
-                         
-            token_data = AuthHandler().decode_otp_token(token_query.token)
-            user_obj.password =AuthHandler().get_password_hash(password)
-            user_obj.login_fail_count = 0
-            token_query.active =False
-            db.commit()
-            rowData = {}                
-            rowData["user_id"] = user_obj.id
-            rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
-            background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
-            #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
-            return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
-        
-
-    except Exception as E:
-        db.rollback()
-        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
 @router.post("/list", response_model=PaginatedAdminUserResponse, response_description="Fetch Users List")
 async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
@@ -398,171 +580,8 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
-@router.post("/add-user", response_description="add user")
-async def invitation_mail(request:addSalesUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
-    try:
-        if login_user["role_id"] not in [1,2]:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
-       
-        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        if not re.fullmatch(email_regex, request.email):
-            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
-       
-        user_id=login_user["id"]
-        if login_user["role_id"] ==1:
-            tenant_id=request.tenant_id
-        else:
-            tenant_id=login_user["tenant_id"]
-        email = request.email
-        first_name =  request.first_name
-        last_name  =  request.last_name
-        mobile_no  =  request.mobile_no
-        experience =  request.experience
-        role_id    =  request.role_id
-        otp=str(Utility.generate_otp())
-        #profile_image =  request.first_name
-        exist_user=db.query(AdminUser).filter(AdminUser.email==request.email).first()
-        if exist_user:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Email already exists", error=[], data={})
-        password=AuthHandler().get_password_hash(otp)
-        name = first_name
-        if first_name and last_name:
-            name = first_name+" "+last_name
-        user_data={"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
-        new_user = AdminUser(**user_data)
-        db.add(new_user)
-        db.commit()
-        if new_user.id:
-            if experience:
-                new_user.experience = experience
-            category="ADD_USER"
-            user_dict={"user_id":new_user.id,"catrgory":category,"otp":otp}
-            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":role_id,"email":request.email,"name":name})
-            user_dict["token"]=token
-            user_dict["ref_id"]=new_user.id
-            db.add(tokensModel(**user_dict))
-            
-            link = f'''{WEB_URL}set-password?token={token}&user_id={new_user.id}'''
-            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='add_user.html',data={"name":name,"link":link})
-            tfs_id = Utility.generate_tfs_code(role_id)
-            new_user.tfs_id = f"{tfs_id}-{new_user.id}"
-            db.commit()
-            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[], data={})
-        else:
-            db.rollback()
-            return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
 
-    except Exception as E:
-        print(E)
-        db.rollback()
-        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
-    
-@router.post("/set-password", response_description="Forgot Password")
-async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
-    try:
-        user_id = request.user_id
-        token = str(request.token)
-        password =  request.password
-        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
-        if user_obj is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
-        else:
-            if user_obj.status_id == 4:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
-            elif user_obj.status_id == 5:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
-            
-            token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
-            
-            if token_data is None:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
-            tokendata = AuthHandler().decode_otp_token(token_data.token)
-            
-            if tokendata in None :
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
-            
-            user_obj.token = ''
-            user_obj.otp = ''
-            user_obj.password =AuthHandler().get_password_hash(password)
-            user_obj.status_id = 3
-            user_obj.login_fail_count = 0
-            token_data.active = False
-            db.commit()
-            rowData = {}
-            rowData["user_id"] = user_obj.id
-            rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
-            background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
-            #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
-            return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
-        
-    except Exception as E:
-        print(E)
-        db.rollback()
-        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
-@router.post("/invite-user", response_description="invitation mail for maker checker")
-async def invitation_mail(request:InvitationSchema,background_tasks: BackgroundTasks,admin_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
-    try:
-        if admin_user["role_id"] not in [1,2]:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
-       
-        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        if not re.fullmatch(email_regex, request.email):
-            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
-       
-        role_id = admin_user["role_id"]
-        user_id=admin_user["id"]
-        if admin_user["role_id"] ==1:
-            tenant_id=request.tenant_id
-        else:
-            tenant_id=admin_user["tenant_id"]
-        user_email=db.query(AdminUser).filter(AdminUser.email==request.email).first()
-        if user_email:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Email already exists", error=[], data={})
-        
-        
-        category="INVITE_USER"
-        otp=str(Utility.generate_otp())
-        user_dict={"user_id":user_id,"catrgory":category,"otp":otp,"invite_by_role_id":role_id,"invited_by":user_id}
-        token = AuthHandler().encode_token({"tenant_id":tenant_id,"user_id":user_id,"catrgory":category,"otp":otp,"invite_role_id":request.role_id,"email":request.email})
-        user_dict["token"]=token
-        user_dict["ref_id"]=user_id
-        db.add(tokensModel(**user_dict))
-        db.commit()
-        link=f'''{WEB_URL}admin/invitationMail?token={token}'''
-        background_tasks.add_task(Email.send_mail, recipient_email=[request.email], subject="Invitation Link", template='invitation_template.html',data={"link":link})
-        return Utility.json_response(status=SUCCESS, message="Invitation Sent to the mail", error=[], data={"email":request.email})   
-    except Exception as E:
-        print(E)
-        db.rollback()
-        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
-    
-@router.post("/signup-tenant-user", response_description="Register tenant user")
-async def signup_tenant_user(request:TenantUserSchema,background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
-    try:
-        token_data=db.query(tokensModel).filter(tokensModel.token ==request.token).first() 
-        if not token_data:
-            return Utility.json_response(status=401, message="Invalid Token", error=[], data={},code="INVALID_TOKEN")
-        if token_data.active==False:
-            return Utility.json_response(status=401, message="Token is expired", error=[], data={},code="TOKEN_EXPIRED")
-        user_dict=AuthHandler().decode_token(request.token)
-        role_id=user_dict["invite_role_id"]
-        email=user_dict["email"]
-        tenant_id=user_dict["tenant_id"]
-        password=AuthHandler().get_password_hash(request.password)
-        user_data={"tenant_id":tenant_id,"user_name":request.first_name+" "+request.last_name,"password":password,"email":email,"mobile_no":request.mobile_no,"role_id":role_id,"status_id":3}
-        db.add(AdminUser(**user_data))
-        db.commit()
-        background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='signup_welcome.html',data={"name":user_data["user_name"]})
-        token_data.active=False
-        db.commit()
-        return Utility.json_response(status=SUCCESS, message="User Registered Successfully", error=[], data=user_data)   
-    except Exception as E:
-        print(E)
-        db.rollback()
-        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
-   
 @router.post("/invite-tenant", response_description="invitation mail for Tenant")
 async def tenant_invitation_mail(request:TenantInvitationSchema,background_tasks: BackgroundTasks,admin_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
@@ -593,8 +612,6 @@ async def tenant_invitation_mail(request:TenantInvitationSchema,background_tasks
     except Exception as E:
         print(E)
         db.rollback()
-
-
 
 
 @router.post("/signup-tenant", response_description="Register tenant")
