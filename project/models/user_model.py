@@ -100,7 +100,7 @@ class CustomerModal(BaseModel):
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=False, default=None )
     service_details = relationship("MdServiceTypes", back_populates="user_service")
 
-    subscriber_details = relationship("LoanapplicationModel", back_populates="subscriber")
+    loan_applications_list = relationship("LoanapplicationModel", back_populates="subscriber")
     created_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
     created_by_details = relationship("AdminUser", back_populates="my_users")
     accepted_terms = Column(Boolean, default=False)
@@ -112,7 +112,7 @@ class LoanapplicationModel(BaseModel):
     __tablename__ = "application_details"
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
-    subscriber = relationship("CustomerModal", back_populates="subscriber_details")
+    subscriber = relationship("CustomerModal", back_populates="loan_applications_list")
 
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")

@@ -202,7 +202,7 @@ class Utility:
     def generate_tfs_code(role_id):
         code = "TFS"
         if role_id==5:
-            code = "TFSC-"
+            code = "TFS-M"
         return code
     # def inactive_previous_tokens(db =None,category:str='',user_id:int=0):
     #     try:
