@@ -118,7 +118,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             link = f'''{WEB_URL}set-password?token={token}&user_id={new_user.id}'''
             background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='add_user.html',data={"name":name,"link":link})
             tfs_id = Utility.generate_tfs_code(role_id)
-            new_user.tfs_id = f"{tfs_id}-{new_user.id}"
+            new_user.tfs_id = f"{tfs_id}{new_user.id}"
             db.commit()
             return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[], data={})
         else:

@@ -139,6 +139,7 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             name = f"{first_name} last_name"
         if user_obj.count() <=0:
             user_data = CustomerModal(
+                                    
                                       first_name=first_name,
                                       last_name=last_name,
                                       name=name,
@@ -156,6 +157,7 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             db.flush()
             db.commit()
             if user_data.id:
+                user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)
                 rowData = {}
                 rowData['user_id'] = udata["id"]
@@ -179,6 +181,7 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         else:
+            otp =str(Utility.generate_otp())
             existing_user = user_obj.one()
             udata =  Utility.model_to_dict(existing_user)
             rowData = {}
@@ -193,8 +196,15 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
             rowData["status_details"] = Utility.model_to_dict(existing_user.status_details)
             
             #del existing_user.otp
-            #del existing_user.password            
-            if existing_user.status_id == 1 or existing_user.status_id ==2:
+            #del existing_user.password
+            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+            link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
+          
+            user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp}
+            user_dict["token"]=new_token
+            user_dict["ref_id"]=existing_user.id
+            if existing_user.status_id == 1:
+                otp = str(Utility.generate_otp())
                 msg = all_messages.ACCOUNT_EXISTS_PENDING_EMAIL_VERIFICATION
                 code = "SIGNUP_VERIFICATION_PENDING"                
                 
@@ -212,6 +222,17 @@ async def register(request: createCustomerSchema,background_tasks: BackgroundTas
                    
                 
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=msg, error=[], data=rowData,code=code)
+            elif  existing_user.status_id == 2:
+                otp = str(Utility.generate_otp())
+                category = "ADD_USER"
+                token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+                user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp,"token":token,"ref_id":existing_user.id}
+                
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail, recipient_email=[existing_user.email], subject="Welcome to TFS", template='add_user.html',data={"name":existing_user.name,"link":link})
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+            
             elif  existing_user.status_id == 3:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_PROFILE_IS_ACTIVE")
             elif existing_user.status_id == 4:
@@ -234,6 +255,7 @@ async def verify_account(request: VerifyAccount,background_tasks: BackgroundTask
                
         user_id = request.user_id
         otp = str(request.otp)
+        category ="ADD_USER"
         user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
         
         if user_obj is None:
@@ -245,20 +267,43 @@ async def verify_account(request: VerifyAccount,background_tasks: BackgroundTask
             rowData['first_name'] = user_obj.first_name
             rowData['last_name'] = user_obj.last_name
             rowData['status_id'] = user_obj.status_id
+            new_token = AuthHandler().encode_token({"user_id":user_obj.id,"catrgory":category,"otp":otp,"invite_role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+            link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={user_obj.id}'''
            #rowData["country_details"] = Utility.model_to_dict(user_obj.country_details)
             #rowData["status_details"] = Utility.model_to_dict(user_obj.status_details)
-            if user_obj.status_id == 2:
-                if otp ==  user_obj.otp:
-                    user_obj.status_id = 3
+            user_dict={"user_id":user_obj.id,"catrgory":category,"otp":otp}
+            user_dict["token"]=new_token
+            user_dict["ref_id"]=user_obj.id
+            if user_obj.status_id == 1:
+                token_data = db.query(tokensModel).filter(tokensModel.otp == otp, tokensModel.user_id == user_id, tokensModel.catrgory == "SIGNUP_CUSTOMER").first()
+                tokendata = AuthHandler().decode_otp_token(token_data.token)
+                if otp ==  token_data.otp:
+                    user_obj.status_id = 2
                     user_obj.otp = ''
                     db.commit()
                     mail_data ={"name": user_obj.first_name+" "+user_obj.last_name }
-                    background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Welcome to M-Remittance!", template='signup_welcome.html',data=mail_data )
+                    #background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Welcome to TFS!", template='signup_welcome.html',data=mail_data )
+                    
+                    db.add(tokensModel(**user_dict))
+                    db.commit()
+                    background_tasks.add_task(Email.send_mail, recipient_email=[user_obj.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_obj.name,"link":link})
+                
                     return Utility.json_response(status=SUCCESS, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
            
                 else:
                     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALIED_OTP, error=[], data={},code="INVALIED_OTP")
+            elif  user_obj.status_id == 2:
+                otp = str(Utility.generate_otp())
+                category = "ADD_USER"
+                token = AuthHandler().encode_token({"user_id":user_obj.id,"catrgory":category,"otp":otp,"invite_role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                user_dict={"user_id":user_obj.id,"catrgory":category,"otp":otp,"token":token,"ref_id":user_obj.id}
                 
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail, recipient_email=[user_obj.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_obj.name,"link":link})
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+            
+            
             elif  user_obj.status_id == 3:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_PROFILE_IS_ACTIVE")
             elif user_obj.status_id == 4:
@@ -562,6 +607,52 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/set-password", response_description="Forgot Password")
+async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+    try:
+        user_id = request.user_id
+        token = str(request.token)
+        password =  request.password
+        user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
+        
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
+            elif user_obj.status_id == 5:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+            
+            token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
+            
+            if token_data is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
+            
+            tokendata = AuthHandler().decode_otp_token(token_data.token)
+            
+            if tokendata is None :
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
+            
+            user_obj.token = ''
+            user_obj.otp = ''
+            user_obj.password =AuthHandler().get_password_hash(password)
+            user_obj.status_id = 3
+            user_obj.login_fail_count = 0
+            token_data.active = False
+            
+            db.commit()
+            rowData = {}
+            rowData["user_id"] = user_obj.id
+            rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
+            background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
+            #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+            return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
+        
+    except Exception as E:
+        print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 

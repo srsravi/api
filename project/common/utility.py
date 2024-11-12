@@ -200,7 +200,10 @@ class Utility:
         return socket_id    
     @staticmethod
     def generate_tfs_code(role_id):
-        return "TFS"
+        code = "TFS"
+        if role_id==5:
+            code = "TFSC-"
+        return code
     # def inactive_previous_tokens(db =None,category:str='',user_id:int=0):
     #     try:
     #         if db is not None and category and user_id>0:
