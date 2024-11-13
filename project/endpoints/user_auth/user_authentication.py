@@ -139,7 +139,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
 @router.post("/signup-customer", response_description="Customer Signup")
 async def register_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
-        tenant_id = 1
+        tenant_id = None
         mobile_no = request.mobile_no
         email = request.email
         first_name = request.first_name
@@ -178,7 +178,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.flush()
             db.commit()
             if user_data.id:
-                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id)
+                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)

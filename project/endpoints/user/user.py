@@ -280,9 +280,17 @@ async def get_loan_application_details( request: getloanApplicationDetails,auth_
         loan_approved_by = Column(Integer, nullable=True, default=None )
 
         """
+        role_id = auth_user["role_id"]
+
         
         loan_application_form_id = request.loan_application_form_id
         query = db.query(LoanapplicationModel).filter(LoanapplicationModel.id == loan_application_form_id)
+        
+        if role_id !=1 and auth_user["tenant_id"] is not None:
+            query = query.filter(LoanapplicationModel.tenant_id == auth_user["tenant_id"])
+
+
+
         dbcursor = query.first()
         if dbcursor is None:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")

@@ -119,7 +119,7 @@ class LoanapplicationModel(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
     subscriber = relationship("CustomerModal", back_populates="loan_applications_list")
-
+    tenant_id= Column(Integer, default=None,)
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
 
