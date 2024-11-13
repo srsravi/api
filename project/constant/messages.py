@@ -75,6 +75,7 @@ INVALID_BIRTHDATE="Invalid date of birth"
 BUSINESS_LOGIC_ERROR="Business LOgic Error"
 KYC_STATUS_UPDATE_NOT_ALLOWED="KYC Update not allowed.Please make sure all KYC documents are approved"
 KYC_DOCUMENTS_NOT_UPLOADED="KYC documents are not uploaded!"
+LOAN_APPL_FORM_NOT_FOUND="Loan Application not Found"
 
 
 
