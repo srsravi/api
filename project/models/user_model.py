@@ -129,14 +129,16 @@ class LoanapplicationModel(BaseModel):
     profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="lead_profession_sub_type")
     
     #Salaried column fields
-    company_name = Column(String(55), default='')
+    companyName = Column(String(55), default='')
     designation = Column(String(55), default='')
-    total_experience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
+    totalExperience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
     present_organization_years =  Column(Integer, default=None)
-    work_location = Column(String(55), default='')
-    gross_salary = Column(Float, default=None, comment="gross salary")
-    net_salary = Column(Float, default=None, comment="net salary")
-    other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
+    workLocation = Column(String(55), default='')
+    grossSalary = Column(Float, default=None, comment="gross salary")
+    netSalary = Column(Float, default=None, comment="net salary")
+    otherIncome = Column(String(6), default="No", comment="net salary")
+    Obligations = Column(String(6), default="No", comment="Obligations")
+    other_income_list = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
     obligations_per_month = Column(Integer, default=None)
 
     #SENP Columns fields
@@ -153,7 +155,7 @@ class LoanapplicationModel(BaseModel):
     #already exists above
     #other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
     avg_income_per_month =  Column(Float, default=None)
-    obligation = Column(Boolean, default=False)
+    #Obligations = Column(String(6), default="No", comment="Obligations")
     other_obligation = Column(Text, default='', comment="Optional details of other financial obligations as a JSON stringified list of dictionaries.")
 
     #SEP Column fields
