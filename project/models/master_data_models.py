@@ -160,5 +160,17 @@ class MdSubscriptionPlansModel(BaseModel):
         from_attributes = True
         str_strip_whitespace = True
 
+#service_configuration
+class ServiceConfigurationModel(BaseModel):
+    #md_subscription_plans
+    __tablename__ = "service_configurations"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    service_type_id =  Column(Integer, default=None)
+    user_id =  Column(Integer, primary_key=True, default=None)
+    tenant_id =  Column(Integer, primary_key=True, default=None)
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
 
 
