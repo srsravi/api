@@ -59,5 +59,20 @@
         "role_id":4,
         "status_id":3,
         "tenant_id":1
+    },
+    {
+        "id":5,
+        "tfs_id":"TFS7005",
+        "first_name":"tfs vjwd",
+        "last_name":" admin",
+        "name":"tfs vjwd admin",
+        "password":"$2b$12$7r9GlDBphQt5aCMvAP/uyeQvhEhI9p9BD9HWYclY4pd4jef3Sp7iy",
+        "login_token":"$2b$12$Y6bPp1KQ/745SraOYLG6z.KdgXsaYpuipWQO3J5y.ZhxO4jAirMxW",
+        "token":"$2b$12$Y6bPp1KQ/745SraOYLG6z.KdgXsaYpuipWQO3J5y.ZhxO4jAirMxW",
+        "email":"tfs_vjwd_admin@yopmail.com",
+        "mobile_no":"+91-7396625277",
+        "role_id":2,
+        "status_id":3,
+        "tenant_id":2
     }
 ]

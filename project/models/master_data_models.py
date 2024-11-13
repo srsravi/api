@@ -147,4 +147,18 @@ class MdLoanApplicationStatus(BaseModel):
     all_applications = relationship("LoanapplicationModel", back_populates="status_details")
     
 
+class MdSubscriptionPlansModel(BaseModel):
+    #md_subscription_plans
+    __tablename__ = "md_subscription_plans"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), default='')
+    status = Column(Boolean, default=True)
+    description = Column(Text, default='')
+    subscription_plan_customers = relationship("CustomerModal", back_populates="subscription_plan_details")
+    
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
+
 

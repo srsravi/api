@@ -104,6 +104,12 @@ class CustomerModal(BaseModel):
     created_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
     created_by_details = relationship("AdminUser", back_populates="my_users")
     accepted_terms = Column(Boolean, default=False)
+
+    #md_subscription_plans MdSubscriptionPlansModel
+    md_subscription_plan_id = Column(Integer, ForeignKey("md_subscription_plans.id"), nullable=True, default=None )
+    subscription_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
+    subscription_history = Column(Text, default=None, comment="History of subscription")
+    
     class Config:
         from_attributes = True
         str_strip_whitespace = True
@@ -116,7 +122,6 @@ class LoanapplicationModel(BaseModel):
 
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
-    
 
     application_form_id = Column(String(20), default=None)
     loan_amount = Column(Float, primary_key=True)

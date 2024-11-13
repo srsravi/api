@@ -4,6 +4,12 @@
 		"name": "TFS HYD Branch",
 		"email":"tfs_hyd_branch@yopmail.com",
 		"mobile_no":"+91-7396625277"
+	},
+	{
+		"id": 2,
+		"name": "TFS vjwd Branch",
+		"email":"tfs_vjwd_branch@yopmail.com",
+		"mobile_no":"+91-7396625277"
 	}
 	
 ]

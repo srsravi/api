@@ -154,10 +154,10 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_MOBILE,error=[], data={})
         user_obj = db.query(CustomerModal).filter(CustomerModal.email == email)
         otp =str(Utility.generate_otp())
-        name =  first_name
+        name =  request.first_name
         category ="SIGNUP_CUSTOMER"
         if last_name:
-            name = f"{first_name} last_name"
+            name = f"{request.first_name} {request.last_name}"
         if user_obj.count() <=0:
             user_data = CustomerModal(
                                     
