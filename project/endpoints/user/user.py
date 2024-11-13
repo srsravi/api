@@ -24,7 +24,7 @@ from fastapi_pagination import Params,paginate
 from sqlalchemy.orm import  joinedload
 from ...library.webSocketConnectionManager import manager
 from ...models.user_model import CustomerModal,LoanapplicationModel
-
+from typing import Dict
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -334,6 +334,31 @@ async def get_loan_application_details( request: getloanApplicationDetails,auth_
             #get loan_approved_by details from Adminuser Modal
             pass
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=application_data,code="")
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/update-loan-application-details",response_model=UserListResponse, response_description="Get User Details")
+async def update_loan_application_details( request: Dict,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+       
+        role_id = auth_user["role_id"]
+        loan_application_form_id = request["loan_application_form_id"]
+        query = db.query(LoanapplicationModel).filter(LoanapplicationModel.id == loan_application_form_id)
+        
+        if role_id !=1 and auth_user["tenant_id"] is not None:
+            query = query.filter(LoanapplicationModel.tenant_id == auth_user["tenant_id"])
+
+        
+
+        dbcursor = query.first()
+        if dbcursor is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+        dbcursor.Obligations = request["Obligations"]
+        db.commit()
+        return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=request,code="")
 
     except Exception as E:
         print(E)
