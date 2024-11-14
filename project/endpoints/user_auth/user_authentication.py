@@ -2,7 +2,7 @@ from datetime import datetime, timezone,timedelta
 from sqlalchemy import and_
 from datetime import datetime
 from ...models.user_model import CustomerModal,LoanapplicationModel
-from ...models.master_data_models import MdUserRole,MdUserStatus
+from ...models.master_data_models import ServiceConfigurationModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
@@ -159,6 +159,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
         if last_name:
             name = f"{request.first_name} {request.last_name}"
         if user_obj.count() <=0:
+            configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
             user_data = CustomerModal(
                                     
                                       first_name=first_name,
@@ -178,8 +179,13 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.flush()
             db.commit()
             if user_data.id:
+                configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
                 new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
+                if configuration is not None:
+                    new_lead.salesman_id = configuration.user_id
+                    user_data.salesman_id = configuration.user_id
+                   
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)
                 rowData = {}

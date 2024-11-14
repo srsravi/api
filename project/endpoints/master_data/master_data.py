@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from ...models.master_data_models import  MdCountries,MdLocations,MdStates,MdTaskStatus,MdTenantStatus,MdTimeZone,MdUserRole,MdUserStatus
 from sqlalchemy import desc, asc
-from ...models.master_data_models import  MdServiceTypes,MdLeadSources,MdProfessionTypes,MdProfessionSubTypes,mdIncomeTypes,MdObligationTypes, MdLoanApplicationStatus,MdSubscriptionPlansModel
+from ...models.master_data_models import  MdServiceTypes,MdLeadSources,MdProfessionTypes,MdProfessionSubTypes,mdIncomeTypes,MdObligationTypes, MdLoanApplicationStatus,MdSubscriptionPlansModel,ServiceConfigurationModel
 
 # APIRouter creates path operations for product module
 from ...constant.messages import MASTER_DATA_LIST
@@ -58,8 +58,8 @@ file_to_model = {
             "md_income_types.json":mdIncomeTypes,
             "md_obligation_types.json": MdObligationTypes,
             "md_loan_application_status.json":MdLoanApplicationStatus,
-            "md_subscription_plans.json":MdSubscriptionPlansModel
-           
+            "md_subscription_plans.json":MdSubscriptionPlansModel,
+            "service_configuration.json":ServiceConfigurationModel
            
 
         }

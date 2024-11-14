@@ -76,6 +76,9 @@ class CustomerModal(BaseModel):
     date_of_birth = Column(Date, nullable=True, default="")
     last_login = Column(DateTime, default= datetime.now(timezone.utc) )
 
+    agent_id = Column(Integer, nullable=True, default=None )
+    salesman_id = Column(Integer, nullable=True, default=None )
+    
     login_count =  Column(Integer, default=0,comment='User Login count')
     login_fail_count =  Column(Integer, default=0,comment='User Login Fail count')
     login_attempt_date = Column(DateTime, default= None,comment='Last Login Attempt date' )

@@ -131,8 +131,8 @@ async def update_password(request: UpdatePassword,auth_user=Depends(AuthHandler(
 async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     #user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
     #AuthHandler().user_validate(user_obj)
-    if auth_user.get("role_id", -1) not in [1,2]:
-        return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+    # if auth_user.get("role_id", -1) not in [1,2]:
+    #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
 
     
     query = db.query(CustomerModal).options(
@@ -158,9 +158,12 @@ async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthH
         )
     if filter_data.tenant_id:
         query = query.filter(CustomerModal.tenant_id.in_(filter_data.tenant_id))
-
-    #if filter_data.role_id:
-        #query = query.filter(CustomerModal.role_id == filter_data.role_id)
+    if auth_user.get("role_id", -1) ==3:
+        query = query.filter(CustomerModal.salesman_id == auth_user["user_id"] )
+    if auth_user.get("role_id", -1) ==4:
+        query = query.filter(CustomerModal.agent_id == auth_user["user_id"] )
+        
+    
     if filter_data.status_ids:
         query = query.filter(CustomerModal.status_id.in_(filter_data.status_ids))
     
