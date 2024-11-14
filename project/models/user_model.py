@@ -78,7 +78,7 @@ class CustomerModal(BaseModel):
 
     agent_id = Column(Integer, nullable=True, default=None )
     salesman_id = Column(Integer, nullable=True, default=None )
-    
+
     login_count =  Column(Integer, default=0,comment='User Login count')
     login_fail_count =  Column(Integer, default=0,comment='User Login Fail count')
     login_attempt_date = Column(DateTime, default= None,comment='Last Login Attempt date' )
@@ -127,7 +127,7 @@ class LoanapplicationModel(BaseModel):
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
 
     application_form_id = Column(String(20), default=None)
-    loan_amount = Column(Float, primary_key=True)
+    loanAmount = Column(Float, primary_key=True)
     lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"), default=None, unique=False, index=True)
     lead_sourse_details = relationship("MdLeadSources", back_populates="lead_subscriber")
     profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"), default=None, unique=False)

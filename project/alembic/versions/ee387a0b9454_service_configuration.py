@@ -1,8 +1,8 @@
-"""INIT All TABLES
+"""Service configuration
 
-Revision ID: 568fb47741de
+Revision ID: ee387a0b9454
 Revises: 
-Create Date: 2024-11-02 19:49:54.477740
+Create Date: 2024-11-14 07:13:22.805283
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '568fb47741de'
+revision: str = 'ee387a0b9454'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -113,6 +113,15 @@ def upgrade() -> None:
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('md_subscription_plans',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(length=50), nullable=True),
+    sa.Column('status', sa.Boolean(), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('md_task_status',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=55), nullable=True),
@@ -149,6 +158,15 @@ def upgrade() -> None:
     sa.Column('created_on', sa.DateTime(), nullable=True),
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('service_configurations',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('service_type_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('tenant_id', sa.Integer(), nullable=False),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id', 'user_id', 'tenant_id')
     )
     op.create_table('tenants',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -193,11 +211,14 @@ def upgrade() -> None:
     sa.Column('otp', sa.String(length=61), nullable=True),
     sa.Column('email', sa.String(length=161), nullable=True),
     sa.Column('mobile_no', sa.String(length=15), nullable=True),
+    sa.Column('alternate_mobile_no', sa.String(length=15), nullable=True),
     sa.Column('last_login', sa.DateTime(), nullable=True),
     sa.Column('login_count', sa.Integer(), nullable=True, comment='User Login count'),
     sa.Column('login_fail_count', sa.Integer(), nullable=True, comment='User Login Fail count'),
     sa.Column('login_attempt_date', sa.DateTime(), nullable=True, comment='Last Login Attempt date'),
     sa.Column('date_of_birth', sa.Date(), nullable=True),
+    sa.Column('experience', sa.Float(), nullable=True),
+    sa.Column('profile_image', sa.String(length=50), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.Column('status_id', sa.Integer(), nullable=False),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -212,6 +233,31 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_admin_tenant_id'), 'admin', ['tenant_id'], unique=False)
     op.create_index(op.f('ix_admin_tfs_id'), 'admin', ['tfs_id'], unique=True)
+    op.create_table('admin_user_details',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('admin_user_id', sa.Integer(), nullable=True),
+    sa.Column('pancard_or_passport', sa.String(length=50), nullable=True),
+    sa.Column('aadhaar_card', sa.String(length=50), nullable=True),
+    sa.Column('present_address', sa.Text(), nullable=True),
+    sa.Column('present_occupation', sa.String(length=60), nullable=True),
+    sa.Column('employer_name', sa.String(length=60), nullable=True),
+    sa.Column('qualification', sa.String(length=60), nullable=True),
+    sa.Column('account_holder_name', sa.String(length=60), nullable=True),
+    sa.Column('bank_name', sa.String(length=60), nullable=True),
+    sa.Column('bank_account_number', sa.String(length=60), nullable=True),
+    sa.Column('ifsc_code', sa.String(length=60), nullable=True),
+    sa.Column('empty_check', sa.String(length=60), nullable=True),
+    sa.Column('referral_name_one', sa.String(length=60), nullable=True),
+    sa.Column('referral_mobile_number_one', sa.String(length=15), nullable=True),
+    sa.Column('referral_address_one', sa.Text(), nullable=True),
+    sa.Column('referral_name_two', sa.String(length=60), nullable=True),
+    sa.Column('referral_mobile_number_two', sa.String(length=15), nullable=True),
+    sa.Column('referral_address_two', sa.Text(), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['admin_user_id'], ['admin.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('customers',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('tfs_id', sa.String(length=30), nullable=True),
@@ -226,6 +272,8 @@ def upgrade() -> None:
     sa.Column('alternate_mobile_no', sa.String(length=15), nullable=True),
     sa.Column('date_of_birth', sa.Date(), nullable=True),
     sa.Column('last_login', sa.DateTime(), nullable=True),
+    sa.Column('agent_id', sa.Integer(), nullable=True),
+    sa.Column('salesman_id', sa.Integer(), nullable=True),
     sa.Column('login_count', sa.Integer(), nullable=True, comment='User Login count'),
     sa.Column('login_fail_count', sa.Integer(), nullable=True, comment='User Login Fail count'),
     sa.Column('login_attempt_date', sa.DateTime(), nullable=True, comment='Last Login Attempt date'),
@@ -236,9 +284,12 @@ def upgrade() -> None:
     sa.Column('service_type_id', sa.Integer(), nullable=False),
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('accepted_terms', sa.Boolean(), nullable=True),
+    sa.Column('md_subscription_plan_id', sa.Integer(), nullable=True),
+    sa.Column('subscription_history', sa.Text(), nullable=True, comment='History of subscription'),
     sa.Column('created_on', sa.DateTime(), nullable=True),
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['created_by'], ['admin.id'], ),
+    sa.ForeignKeyConstraint(['md_subscription_plan_id'], ['md_subscription_plans.id'], ),
     sa.ForeignKeyConstraint(['role_id'], ['md_user_roles.id'], ),
     sa.ForeignKeyConstraint(['service_type_id'], ['md_service_types.id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['md_user_status.id'], ),
@@ -267,19 +318,23 @@ def upgrade() -> None:
     op.create_table('application_details',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('subscriber_id', sa.Integer(), nullable=True),
+    sa.Column('tenant_id', sa.Integer(), nullable=True),
+    sa.Column('service_type_id', sa.Integer(), nullable=True),
     sa.Column('application_form_id', sa.String(length=20), nullable=True),
-    sa.Column('loan_amount', sa.Float(), nullable=False),
+    sa.Column('loanAmount', sa.Float(), nullable=False),
     sa.Column('lead_sourse_id', sa.Integer(), nullable=True),
     sa.Column('profession_type_id', sa.Integer(), nullable=True),
     sa.Column('profession_sub_type_id', sa.Integer(), nullable=True),
-    sa.Column('company_name', sa.String(length=55), nullable=True),
+    sa.Column('companyName', sa.String(length=55), nullable=True),
     sa.Column('designation', sa.String(length=55), nullable=True),
-    sa.Column('total_experience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
+    sa.Column('totalExperience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
     sa.Column('present_organization_years', sa.Integer(), nullable=True),
-    sa.Column('work_location', sa.String(length=55), nullable=True),
-    sa.Column('gross_salary', sa.Float(), nullable=True, comment='gross salary'),
-    sa.Column('net_salary', sa.Float(), nullable=True, comment='net salary'),
-    sa.Column('other_income', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
+    sa.Column('workLocation', sa.String(length=55), nullable=True),
+    sa.Column('grossSalary', sa.Float(), nullable=True, comment='gross salary'),
+    sa.Column('netSalary', sa.Float(), nullable=True, comment='net salary'),
+    sa.Column('otherIncome', sa.String(length=6), nullable=True, comment='net salary'),
+    sa.Column('Obligations', sa.String(length=6), nullable=True, comment='Obligations'),
+    sa.Column('other_income_list', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
     sa.Column('obligations_per_month', sa.Integer(), nullable=True),
     sa.Column('number_of_years', sa.Float(), nullable=True),
     sa.Column('location', sa.String(length=55), nullable=True),
@@ -290,7 +345,6 @@ def upgrade() -> None:
     sa.Column('current_year_turnover_amount', sa.Float(), nullable=True),
     sa.Column('current_year_itr', sa.Float(), nullable=True),
     sa.Column('avg_income_per_month', sa.Float(), nullable=True),
-    sa.Column('obligation', sa.Boolean(), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
     sa.Column('all_obligations', sa.Text(), nullable=True),
@@ -309,9 +363,10 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['lead_sourse_id'], ['md_lead_sources.id'], ),
     sa.ForeignKeyConstraint(['profession_sub_type_id'], ['md_profession_sub_types.id'], ),
     sa.ForeignKeyConstraint(['profession_type_id'], ['md_profession_types.id'], ),
+    sa.ForeignKeyConstraint(['service_type_id'], ['md_service_types.id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['md_loan_application_status.id'], ),
     sa.ForeignKeyConstraint(['subscriber_id'], ['customers.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id', 'loan_amount')
+    sa.PrimaryKeyConstraint('id', 'loanAmount')
     )
     op.create_index(op.f('ix_application_details_lead_sourse_id'), 'application_details', ['lead_sourse_id'], unique=False)
     op.create_index(op.f('ix_application_details_subscriber_id'), 'application_details', ['subscriber_id'], unique=False)
@@ -346,6 +401,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_customers_tfs_id'), table_name='customers')
     op.drop_index(op.f('ix_customers_tenant_id'), table_name='customers')
     op.drop_table('customers')
+    op.drop_table('admin_user_details')
     op.drop_index(op.f('ix_admin_tfs_id'), table_name='admin')
     op.drop_index(op.f('ix_admin_tenant_id'), table_name='admin')
     op.drop_table('admin')
@@ -353,12 +409,14 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_tickets_user_id'), table_name='tickets')
     op.drop_table('tickets')
     op.drop_table('tenants')
+    op.drop_table('service_configurations')
     op.drop_table('md_user_status')
     op.drop_index(op.f('ix_md_user_roles_name'), table_name='md_user_roles')
     op.drop_table('md_user_roles')
     op.drop_table('md_timezones')
     op.drop_table('md_tenant_status')
     op.drop_table('md_task_status')
+    op.drop_table('md_subscription_plans')
     op.drop_table('md_states')
     op.drop_table('md_service_types')
     op.drop_table('md_reminder_status')
