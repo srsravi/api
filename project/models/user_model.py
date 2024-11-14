@@ -157,9 +157,11 @@ class LoanapplicationModel(BaseModel):
     last_turnover_year = Column(String(55), default='')
     last_year_turnover_amount = Column(Float, default=None)
     last_year_itr =  Column(Float, default=None)
+    lastYearITRamount =Column(Float, default=None)
     current_turnover_year = Column(String(55), default='')
     current_year_turnover_amount = Column(Float, default=None)
     current_year_itr =  Column(Float, default=None)
+    presentYearITRamount = Column(Float, default=None)
     #already exists above
     #other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
     avg_income_per_month =  Column(Float, default=None)

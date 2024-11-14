@@ -208,9 +208,10 @@ async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthH
             temp_item["service_details"] = Utility.model_to_dict(item.service_details)
         if item.loan_applications_list is not None:
             temp_item["loan_applications_list"] = []
+            loan_applications_list =[]
             for loan in item.loan_applications_list:
-                temp_item["loan_applications_list"].append(Utility.model_to_dict(loan))
-
+                loan_applications_list.append(Utility.model_to_dict(loan))
+            temp_item["loan_applications_list"] = sorted(loan_applications_list, key=lambda x: x['id'], reverse=True)
         
         if "status_id" in temp_item:
             temp_item["status_details"] = Utility.model_to_dict(item.status_details)
@@ -392,8 +393,25 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
             dbcursor.other_obligation = request.get("all_obligations","")
         
         dbcursor.obligations_per_month = request.get("obligations_per_month",None)
-          
-        
+
+
+        #SENP
+        dbcursor.number_of_years=request.get("number_of_years",'')
+        dbcursor.location=request.get("location",'')
+        dbcursor.last_turnover_year=request.get("last_turnover_year",'')
+        dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
+        dbcursor.last_year_itr=request.get("last_year_itr",'')
+        dbcursor.lastYearITRamount=request.get("lastYearITRamount",None)
+        dbcursor.current_turnover_year=request.get("current_turnover_year",'')
+        dbcursor.current_year_turnover_amount=request.get("current_year_turnover_amount",'')
+        dbcursor.current_year_itr=request.get("current_year_itr",'')
+        dbcursor.presentYearITRamount=request.get("presentYearITRamount",'')
+        dbcursor.avg_income_per_month=request.get("avg_income_per_month",'')
+
+        #SEP Column fields
+        #income_type_id
+        dbcursor.income_type_id = request.get("income_type_id",None)
+        dbcursor.total_obligation_amount_per_month = request.get("total_obligation_amount_per_month",None)
         
         db.commit()
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=request,code="")
