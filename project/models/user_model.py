@@ -127,7 +127,7 @@ class LoanapplicationModel(BaseModel):
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
 
     application_form_id = Column(String(20), default=None)
-    loanAmount = Column(Float, primary_key=True)
+    loanAmount = Column(Float, default=None)
     lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"), default=None, unique=False, index=True)
     lead_sourse_details = relationship("MdLeadSources", back_populates="lead_subscriber")
     profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"), default=None, unique=False)

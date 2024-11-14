@@ -359,7 +359,42 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         dbcursor = query.first()
         if dbcursor is None:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
-        dbcursor.Obligations = request["Obligations"]
+        
+        
+        # if request.get("date_of_birth",False):
+        #     dbcursor.date_of_birth = request["date_of_birth"]
+
+        # if request.get("alternate_mobile_no",False):
+        #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
+
+        
+        dbcursor.service_type_id = request.get("service_type_id",None)
+        dbcursor.loanAmount = request.get("loanAmount",None)
+        dbcursor.profession_type_id = request.get("profession_type_id",None)
+        dbcursor.lead_sourse_id = request.get("lead_sourse_id",None)
+        dbcursor.profession_sub_type_id = request.get("profession_sub_type_id",None)
+        dbcursor.companyName = request.get("companyName",'')
+        dbcursor.designation = request.get("designation",'')
+        dbcursor.totalExperience = request.get("totalExperience",None)
+        dbcursor.present_organization_years = request.get("present_organization_years",None)
+        dbcursor.workLocation = request.get("workLocation",'')
+        dbcursor.grossSalary = request.get("grossSalary",None)
+        dbcursor.netSalary = request.get("netSalary",None)
+        dbcursor.otherIncome = request.get("otherIncome","No")
+        dbcursor.other_income_list ='[]'
+        if request.get("otherIncome","No")=="Yes":
+            dbcursor.other_income_list = request.get("other_income_list","")
+        dbcursor.Obligations = request.get("Obligations","No")
+        dbcursor.all_obligations ='[]'
+        dbcursor.other_obligation = "[]"
+        if request.get("Obligations","No")=="Yes":
+            dbcursor.all_obligations = request.get("all_obligations","")
+            dbcursor.other_obligation = request.get("all_obligations","")
+        
+        dbcursor.obligations_per_month = request.get("obligations_per_month",None)
+          
+        
+        
         db.commit()
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=request,code="")
 
