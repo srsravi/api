@@ -159,9 +159,9 @@ async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthH
     if filter_data.tenant_id:
         query = query.filter(CustomerModal.tenant_id.in_(filter_data.tenant_id))
     if auth_user.get("role_id", -1) ==3:
-        query = query.filter(CustomerModal.salesman_id == auth_user["user_id"] )
+        query = query.filter(CustomerModal.salesman_id == auth_user["id"] )
     if auth_user.get("role_id", -1) ==4:
-        query = query.filter(CustomerModal.agent_id == auth_user["user_id"] )
+        query = query.filter(CustomerModal.agent_id == auth_user["id"] )
         
     
     if filter_data.status_ids:
