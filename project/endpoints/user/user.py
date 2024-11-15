@@ -408,6 +408,15 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         dbcursor.presentYearITRamount=request.get("presentYearITRamount",'')
         dbcursor.avg_income_per_month=request.get("avg_income_per_month",'')
 
+        dbcursor.eligible=request.get("eligible","No")
+        dbcursor.fdir=request.get("fdir","")
+        dbcursor.description=request.get("description",None)
+        dbcursor.loan_eligible_type= None
+        dbcursor.loan_eligible_amount= None
+        if request.get("eligible","No")=="Yes":
+            dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
+            dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+
         #SEP Column fields
         #income_type_id
         dbcursor.income_type_id = request.get("income_type_id",None)

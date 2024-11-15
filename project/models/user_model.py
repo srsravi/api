@@ -180,6 +180,13 @@ class LoanapplicationModel(BaseModel):
     admin_id = Column(Integer, nullable=True, default=None )
     loan_approved_by = Column(Integer, nullable=True, default=None )
 
+    eligible =Column(String(5), nullable=True, default="No" )
+    loan_eligible_type =Column(Integer, nullable=True, default=None )
+    loan_eligible_amount =  Column(Float, nullable=True, default=None )
+    fdir = Column(Text, nullable=True, default=None )
+    description = Column(Text, default=None, comment="description")
+
+
     created_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
     created_by_details = relationship("AdminUser", back_populates="my_applications")
     
