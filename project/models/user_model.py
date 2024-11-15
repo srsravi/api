@@ -126,28 +126,28 @@ class LoanapplicationModel(BaseModel):
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
 
-    application_form_id = Column(String(20), default=None)
-    loanAmount = Column(Float, default=None)
-    lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"), default=None, unique=False, index=True)
+    application_form_id = Column(String(20), default=None,nullable=True,)
+    loanAmount = Column(String(50), nullable=True, default="0")
+    lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"),nullable=True, default=None, unique=False, index=True)
     lead_sourse_details = relationship("MdLeadSources", back_populates="lead_subscriber")
-    profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"), default=None, unique=False)
+    profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"),nullable=True, default=None, unique=False)
     profession_details = relationship("MdProfessionTypes", back_populates="lead_profession")
     
-    profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"), default=None, unique=False)
+    profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"),nullable=True, default=None, unique=False)
     profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="lead_profession_sub_type")
     
     #Salaried column fields
-    companyName = Column(String(55), default='')
-    designation = Column(String(55), default='')
+    companyName = Column(String(55), default='',nullable=True)
+    designation = Column(String(55), default='' ,nullable=True)
     totalExperience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
-    present_organization_years =  Column(Integer, default=None)
-    workLocation = Column(String(55), default='')
-    grossSalary = Column(Float, default=None, comment="gross salary")
-    netSalary = Column(Float, default=None, comment="net salary")
-    otherIncome = Column(String(6), default="No", comment="net salary")
-    Obligations = Column(String(6), default="No", comment="Obligations")
-    other_income_list = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
-    obligations_per_month = Column(Integer, default=None)
+    present_organization_years =  Column(Integer, default=None ,nullable=True)
+    workLocation = Column(String(55), default='',nullable=True)
+    grossSalary = Column(Float, default=None, comment="gross salary" ,nullable=True)
+    netSalary = Column(Float, default=None, comment="net salary" ,nullable=True)
+    otherIncome = Column(String(6), default="No", comment="net salary" ,nullable=True)
+    Obligations = Column(String(6), default="No", comment="Obligations" ,nullable=True)
+    other_income_list = Column(Text, default=None, nullable=True,  comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
+    obligations_per_month = Column(Integer, default=None ,nullable=True)
 
     #SENP Columns fields
     #company_name = Column(String(55), default='') #already exists
@@ -180,7 +180,7 @@ class LoanapplicationModel(BaseModel):
     admin_id = Column(Integer, nullable=True, default=None )
     loan_approved_by = Column(Integer, nullable=True, default=None )
 
-    eligible =Column(String(5), nullable=True, default="No" )
+    eligible = Column(String(5), nullable=True, default="No" )
     loan_eligible_type =Column(Integer, nullable=True, default=None )
     loan_eligible_amount =  Column(Float, nullable=True, default=None )
     fdir = Column(Text, nullable=True, default=None )

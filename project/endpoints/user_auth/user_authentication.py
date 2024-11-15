@@ -180,8 +180,11 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
+                print("************  \n 1 \n \n \n ****************")
                 new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                print("************  \n 2 \n \n \n ****************")
                 db.add(new_lead)
+                print("************  \n 3 \n \n \n ****************")
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
                     user_data.salesman_id = configuration.user_id
