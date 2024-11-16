@@ -421,7 +421,9 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         #income_type_id
         dbcursor.income_type_id = request.get("income_type_id",None)
         dbcursor.total_obligation_amount_per_month = request.get("total_obligation_amount_per_month",None)
-        
+        if request.get("eligible","No")=="Yes":
+            dbcursor.status_id =2
+
         db.commit()
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=request,code="")
 
