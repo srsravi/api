@@ -43,10 +43,10 @@ async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks
             #send mail to user
             background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='enquirey.html',data={"name":name,})
             #send mail to admin
-            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data={},code="SIGNUP_PROCESS_PENDING")
+            return Utility.json_response(status=SUCCESS, message="Thank you for reaching out to us", error=[],data={},code="SIGNUP_PROCESS_PENDING")
             
         else:
-            print("dhg dfkghdfghdfj gdf")
+            
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 

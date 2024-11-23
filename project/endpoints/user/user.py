@@ -165,7 +165,6 @@ async def update_profile(request: UpdateProfile,auth_user=Depends(AuthHandler().
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
-
 @router.post("/update-password", response_description="Update Password")
 async def update_password(request: UpdatePassword,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
