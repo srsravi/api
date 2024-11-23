@@ -77,8 +77,9 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         elif enquiry_data.service_type_id:
             service_type_id = enquiry_data.service_type_id
         existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email)
-        if existing_customer is None:
+        if existing_customer is not None:
             enquiry_data.status_id =2
+            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
             db.commit()
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         
@@ -120,6 +121,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 
             user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
             udata =  Utility.model_to_dict(user_data)
+            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
             rowData = {}
             rowData['user_id'] = udata["id"]
             rowData['first_name'] = udata.get("first_name","")

@@ -207,7 +207,7 @@ class EnquiryModel(BaseModel):
     enquiry_tenant_details = relationship('TenantModel', back_populates='tenant_enquiryes')
     
     
-    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=False, default=None )
+    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     enquir_service_details = relationship("MdServiceTypes", back_populates="enquiry_service")
     
     status_id = Column(Integer, ForeignKey("md_enquiry_status.id"), nullable=False, default=1 )
