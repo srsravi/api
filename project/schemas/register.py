@@ -35,6 +35,10 @@ class EnquiryRequestSchema(BaseModel):
             raise ValueError('Invalid phone number format.')
         return v
 
+class EnquiryBecomeCustomer(BaseModel):
+    enquiry_id:int
+    tenant_id: Optional[int] =1
+    service_type_id:Optional[int] = None
 
 
 class createCustomerSchema(BaseModel):

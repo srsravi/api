@@ -6,7 +6,7 @@ from ...models.master_data_models import ServiceConfigurationModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
-from ...schemas.register import EnquiryRequestSchema
+from ...schemas.register import EnquiryRequestSchema,EnquiryBecomeCustomer
 import re
 from ...schemas.login import Login
 from ...constant import messages as all_messages
@@ -15,6 +15,7 @@ import json
 from fastapi import BackgroundTasks
 from ...models.admin_user import AdminUser
 from ...models.admin_configuration_model import tokensModel
+from ...library.webSocketConnectionManager import manager
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -55,6 +56,100 @@ async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+@router.post("/enquirer-to-customer",  response_description="enquirer to make as customer")
+async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        enquiry_id =  request.enquiry_id
+        tenant_id = 1
+        service_type_id =None
+        if request.tenant_id:
+            tenant_id = request.tenant_id
+        role_id = auth_user["role_id"]
+        user_id = auth_user["id"]
+
+        enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id,EnquiryModel.status_id==1).first()
+        if enquiry_data is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
+        if request.service_type_id is not None:
+            service_type_id = request.service_type_id
+        elif enquiry_data.service_type_id:
+            service_type_id = enquiry_data.service_type_id
+        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email)
+        if existing_customer is None:
+            enquiry_data.status_id =2
+            db.commit()
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+        
+        user_data = CustomerModal(
+                                    
+                                      first_name=enquiry_data.name,
+                                      last_name=enquiry_data.name,
+                                      name=enquiry_data.name,
+                                      role_id =5,
+                                      status_id=2,
+                                      email=enquiry_data.email,
+                                      mobile_no=enquiry_data.mobile_no,
+                                      password=str(Utility.uuid()),
+                                      tenant_id=tenant_id,
+                                      service_type_id=enquiry_data.service_type_id
+                                      )
+            
+        mail_data = {"body":"Welcome to TFS"}
+        otp =str(Utility.generate_otp())
+        category ="SIGNUP_CUSTOMER"
+        db.add(user_data)
+        db.flush()
+        db.commit()
+        if user_data.id:
+            if role_id == 3:
+                user_data.salesman_id = user_id
+            if role_id == 4:
+                user_data.agent_id = user_id
+    
+
+            configuration =None
+            if service_type_id is not None:
+                configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
+                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                db.add(new_lead)
+            if configuration is not None:
+                new_lead.salesman_id = configuration.user_id
+                user_data.salesman_id = configuration.user_id
+                
+            user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+            udata =  Utility.model_to_dict(user_data)
+            rowData = {}
+            rowData['user_id'] = udata["id"]
+            rowData['first_name'] = udata.get("first_name","")
+            rowData['last_name'] = udata.get("last_name","")
+            rowData['mobile_no'] = udata.get("mobile_no",'')
+            rowData['date_of_birth'] = udata.get("date_of_birth",'')
+            mail_data = {}
+            mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+            mail_data["otp"] = otp
+            user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+            user_dict["token"]=token
+            user_dict["ref_id"]=udata["id"]
+            db.add(tokensModel(**user_dict))
+            enquiry_data.status_id =2
+            db.commit()
+            link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
+          
+            background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
+        else:
+            db.rollback()
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+    
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
 
 
 
@@ -293,11 +388,11 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                 
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=msg, error=[], data=rowData,code=code)
             elif  existing_user.status_id == 2:
+                link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
                 otp = str(Utility.generate_otp())
                 category = "ADD_USER"
                 token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
                 user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp,"token":token,"ref_id":existing_user.id}
-                
                 db.add(tokensModel(**user_dict))
                 db.commit()
                 background_tasks.add_task(Email.send_mail, recipient_email=[existing_user.email], subject="Welcome to TFS", template='add_user.html',data={"name":existing_user.name,"link":link})
