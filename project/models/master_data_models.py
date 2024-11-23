@@ -95,6 +95,7 @@ class MdServiceTypes(BaseModel):
     description = Column(Text, default='')
     user_service = relationship("CustomerModal", back_populates="service_details")
     service_lonas_list = relationship("LoanapplicationModel", back_populates="detail_of_service")
+    enquiry_service = relationship("EnquiryModel", back_populates="enquir_service_details")
     
     
     class Config:
@@ -171,6 +172,18 @@ class ServiceConfigurationModel(BaseModel):
     class Config:
         from_attributes = True
         str_strip_whitespace = True
+
+class MdEnquiryStatusModel(BaseModel):
+    __tablename__ = "md_enquiry_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), default='')
+    enquiryes = relationship("EnquiryModel", back_populates="enquir_status_details")
+    
+    
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
 
 
 

@@ -5,6 +5,37 @@ from phonenumbers import NumberParseException, is_valid_number
 import re
 from datetime import date, datetime
 
+class EnquiryRequestSchema(BaseModel):
+    name:str
+    email: EmailStr = Field(..., description="The email address of the user.")
+    mobile_no: str = Field(..., description="The mobile phone number of the user, including the country code.")
+    tenant_id:Optional[int] =1
+    description:Optional[str]
+    service_type_id:Optional[int] =None
+
+    @field_validator('name', mode='before')
+    def validate_name(cls, v, info):
+        v = v.strip()
+        if not re.match(r'^[A-Za-z]+$', v):
+            raise ValueError('Name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
+        return v
+    @validator('email', always=True)
+    def check_email(cls, v):
+        if v is None:
+            raise ValueError('User email address is required and cannot be None.')
+        return v
+    @field_validator('mobile_no', mode='before')
+    def validate_mobile_no(cls, v, info):
+        try:
+            if v:
+                phone_number = phonenumbers.parse(v)
+                if not is_valid_number(phone_number):
+                    raise ValueError('Invalid phone number.')
+        except NumberParseException:
+            raise ValueError('Invalid phone number format.')
+        return v
+
+
 
 class createCustomerSchema(BaseModel):
     email: EmailStr = Field(..., description="The email address of the user.")

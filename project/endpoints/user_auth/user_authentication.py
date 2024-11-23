@@ -1,11 +1,12 @@
 from datetime import datetime, timezone,timedelta
 from sqlalchemy import and_
 from datetime import datetime
-from ...models.user_model import CustomerModal,LoanapplicationModel
+from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel
 from ...models.master_data_models import ServiceConfigurationModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
+from ...schemas.register import EnquiryRequestSchema
 import re
 from ...schemas.login import Login
 from ...constant import messages as all_messages
@@ -21,10 +22,47 @@ router = APIRouter(
     tags=["User Authentication"],
     responses={404: {"description": "Not found"}},
 )
+@router.post("/enquiry",  response_description="Customer enquiry")
+async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
+    try:
+        tenant_id =1
+        service_type_id = None
+        mobile_no = request.mobile_no
+        email = request.email
+        name = request.name
+        description = request.description
+        
+        if request.tenant_id is not None:
+            tenant_id = request.tenant_id
+        if request.service_type_id is not None:
+            service_type_id = request.service_type_id
+        enquiry_data = EnquiryModel(name=name,email=email,mobile_no=mobile_no,service_type_id=service_type_id,tenant_id=tenant_id,description=description)
+        db.add(enquiry_data)
+        db.commit()
+        if enquiry_data.id:
+            #send mail to user
+            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='enquirey.html',data={"name":name,})
+            #send mail to admin
+            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data={},code="SIGNUP_PROCESS_PENDING")
+            
+        else:
+            print("dhg dfkghdfghdfj gdf")
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+    except Exception as E:
+        
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+
 #createCustomerSchema
 @router.post("/invite-customer", response_description="Invite Customer")
 async def invite_customer(request: createCustomerSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
+
         tenant_id = 1
         mobile_no = request.mobile_no
         email = request.email

@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks
 from fastapi_pagination import Params,paginate 
 from sqlalchemy.orm import  joinedload
 from ...library.webSocketConnectionManager import manager
-from ...models.user_model import CustomerModal,LoanapplicationModel
+from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel
 from typing import Dict
 
 # APIRouter creates path operations for product module
@@ -33,8 +33,85 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.post("/enquiry/list", response_description="Fetch Users List")
+async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    
+    try:
+        query = db.query(EnquiryModel).options(
+            joinedload(EnquiryModel.enquiry_tenant_details),
+            joinedload(EnquiryModel.enquir_status_details),
+            joinedload(EnquiryModel.enquir_service_details)
+            )
 
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter(
+                or_(
+                    EnquiryModel.name.ilike(search),
+                    EnquiryModel.description.ilike(search),
+                    EnquiryModel.email.ilike(search),
+                    EnquiryModel.mobile_no.ilike(search),
+                    
+                )
+            )
+        if filter_data.tenant_id:
+            query = query.filter(EnquiryModel.tenant_id.in_(filter_data.tenant_id))
+        if filter_data.status_ids:
+            query = query.filter(EnquiryModel.status_id.in_(filter_data.status_ids))
+        
+        total_count = query.count()
+        sort_column = getattr(EnquiryModel, filter_data.sort_by, None)
+        if sort_column:
+            
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
+            else:
+                query = query.order_by(asc(sort_column))
+        else:
+            query = query.order_by(desc("id"))
 
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        # Create a paginated response
+        users_list =[]
+        for item in paginated_query:
+            temp_item = Utility.model_to_dict(item)
+            
+            # if "tenant_id" in temp_item and temp_item["tenant_id"] is not None:
+                
+            #     temp_item["tenant_details"] = Utility.model_to_dict(item.enquiry_tenant_details)
+            #     if item.enquiry_tenant_details.tenant_admin:
+            #         temp_item["tenant_details"]["admin"] = {}
+            #         for admin in item.enquiry_tenant_details.tenant_admin:
+            #             details = Utility.model_to_dict(admin)
+            #             if details["status_id"] ==3 and  details["role_id"] ==2:
+            #                 temp_item["tenant_details"]["admin"]["id"] = details["id"]
+            #                 temp_item["tenant_details"]["admin"]["tfs_id"] = details["tfs_id"]
+            #                 temp_item["tenant_details"]["admin"]["first_name"] = details["first_name"]
+            #                 temp_item["tenant_details"]["admin"]["last_name"] = details["last_name"]
+            #                 temp_item["tenant_details"]["admin"]["name"] = details["name"]
+            #                 temp_item["tenant_details"]["admin"]["email"] = details["email"]
+            #                 temp_item["tenant_details"]["admin"]["role_details"] = Utility.model_to_dict(admin.role_details)
+
+            if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
+                temp_item["service_details"] = Utility.model_to_dict(item.enquir_service_details)
+            if "status_id" in temp_item:
+                temp_item["status_details"] = Utility.model_to_dict(item.enquir_service_details)
+            
+            users_list.append(temp_item)
+
+        response_data = {
+            "total_count":total_count,
+            "list":users_list,
+            "page":filter_data.page,
+            "per_page":filter_data.per_page
+        }
+        return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/update-profile", response_description="Update Profile")
 async def update_profile(request: UpdateProfile,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
@@ -226,6 +303,7 @@ async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthH
         "per_page":filter_data.per_page
     }
     return Utility.json_response(status=SUCCESS, message="User Details successfully retrieved", error=[], data=response_data,code="")
+
 @router.post("/get-customet-details",response_model=UserListResponse, response_description="Get User Details")
 async def get_benficiary( request: GetUserDetailsReq,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:

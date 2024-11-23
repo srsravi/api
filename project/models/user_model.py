@@ -20,6 +20,8 @@ class TenantModel(BaseModel):
     mobile_no = Column(String(15), default="")
     tenant_user = relationship('CustomerModal', back_populates='tenant_details')
     tenant_admin = relationship('AdminUser', back_populates='admin_tenant_details')
+    tenant_enquiryes = relationship('EnquiryModel', back_populates='enquiry_tenant_details')
+    
    
     class Config:
         from_attributes = True
@@ -194,5 +196,22 @@ class LoanapplicationModel(BaseModel):
     status_details = relationship("MdLoanApplicationStatus", back_populates="all_applications")
 
 
+class EnquiryModel(BaseModel):
+    __tablename__ = "enquiries"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(150), default='')
+    email = Column(String(161), nullable=False )
+    mobile_no = Column(String(15), default="")
+    description = Column(Text, default="")
+    tenant_id = Column(Integer,ForeignKey("tenants.id"), nullable=False, default=None )
+    enquiry_tenant_details = relationship('TenantModel', back_populates='tenant_enquiryes')
+    
+    
+    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=False, default=None )
+    enquir_service_details = relationship("MdServiceTypes", back_populates="enquiry_service")
+    
+    status_id = Column(Integer, ForeignKey("md_enquiry_status.id"), nullable=False, default=1 )
+    enquir_status_details = relationship("MdEnquiryStatusModel", back_populates="enquiryes")
+    
 
 
