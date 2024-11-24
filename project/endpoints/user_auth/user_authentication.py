@@ -49,8 +49,6 @@ async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks
         else:
             
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
-
     except Exception as E:
         
         print(E)
@@ -76,12 +74,12 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
             service_type_id = request.service_type_id
         elif enquiry_data.service_type_id:
             service_type_id = enquiry_data.service_type_id
-        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email)
+        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).first()
         if existing_customer is not None:
             enquiry_data.status_id =2
-            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
+            db.query(EnquiryModel).filter(EnquiryModel.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
             db.commit()
-            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+            return Utility.json_response(status=INTERNAL_ERROR, message="Custormer already exists", error=[], data={})
         
         user_data = CustomerModal(
                                     
@@ -108,7 +106,6 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 user_data.salesman_id = user_id
             if role_id == 4:
                 user_data.agent_id = user_id
-    
 
             configuration =None
             if service_type_id is not None:
@@ -121,7 +118,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 
             user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
             udata =  Utility.model_to_dict(user_data)
-            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
+            db.query(EnquiryModel).filter(EnquiryModel.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
             rowData = {}
             rowData['user_id'] = udata["id"]
             rowData['first_name'] = udata.get("first_name","")
@@ -137,12 +134,14 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
             user_dict["ref_id"]=udata["id"]
             db.add(tokensModel(**user_dict))
             enquiry_data.status_id =2
+            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
             db.commit()
             link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
           
             background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
             return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
         else:
+            print("dghdf gdfkgdh")
             db.rollback()
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
     
@@ -151,9 +150,29 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+@router.post("/enquirer-to-customer",  response_description="enquirer to make as customer")
+async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        enquiry_id =  request.enquiry_id
+        tenant_id = 1
+        service_type_id =None
+        if request.tenant_id:
+            tenant_id = request.tenant_id
+        role_id = auth_user["role_id"]
+        user_id = auth_user["id"]
 
-
-
+        enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id,EnquiryModel.status_id==1).first()
+        if enquiry_data is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
+        enquiry_data.status_id =2
+        db.commit()
+        background_tasks.add_task(Email.send_mail, recipient_email=[enquiry_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+        return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=[],code="")
+        
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 #createCustomerSchema
 @router.post("/invite-customer", response_description="Invite Customer")

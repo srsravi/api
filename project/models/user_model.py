@@ -102,7 +102,7 @@ class CustomerModal(BaseModel):
     
     user_notifications = relationship('NotificationModel', back_populates='application_details',foreign_keys='NotificationModel.user_id' )
     admin_notificatuions = relationship('AdminNotificationModel',  back_populates='application_details', foreign_keys='AdminNotificationModel.user_id')
-    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=False, default=None )
+    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     service_details = relationship("MdServiceTypes", back_populates="user_service")
 
     loan_applications_list = relationship("LoanapplicationModel", back_populates="subscriber")

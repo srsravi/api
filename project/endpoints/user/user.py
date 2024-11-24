@@ -68,7 +68,7 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
             else:
                 query = query.order_by(asc(sort_column))
         else:
-            query = query.order_by(desc("id"))
+            query = query.order_by(desc("status_id"))
 
         # Apply pagination
         offset = (filter_data.page - 1) * filter_data.per_page
@@ -97,7 +97,7 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
             if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
                 temp_item["service_details"] = Utility.model_to_dict(item.enquir_service_details)
             if "status_id" in temp_item:
-                temp_item["status_details"] = Utility.model_to_dict(item.enquir_service_details)
+                temp_item["status_details"] = Utility.model_to_dict(item.enquir_status_details)
             
             users_list.append(temp_item)
 
