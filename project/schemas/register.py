@@ -451,7 +451,26 @@ class addSalesUserSchema(BaseModel):
     last_name: str
     mobile_no: str
     experience:float
+    aternate_mobile_no:Optional[str]
+    passport:Optional[str]
+    aadhaar_card:Optional[str]
+    selfie:Optional[str]
+
+    
+    present_address:Optional[str]
+    present_occupation:Optional[str]
+    employer_name:Optional[str]
+    qualification:Optional[str]
+
+    
+    account_holder_name:Optional[str]
+    bank_name:Optional[str]
+    bank_account_number:Optional[str]
+    ifsc_code:Optional[str]
+    upload_check:Optional[str]
+    referrals:Optional[str]
     profile_image:Optional[str]
     role_id:int
     tenant_id:Optional[int]
+    
     

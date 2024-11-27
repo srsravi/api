@@ -92,6 +92,8 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         mobile_no  =  request.mobile_no
         experience =  request.experience
         role_id    =  request.role_id
+        
+        
         otp=str(Utility.generate_otp())
         #profile_image =  request.first_name
         exist_user=db.query(AdminUser).filter(AdminUser.email==request.email).first()
@@ -102,7 +104,25 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         if first_name and last_name:
             name = first_name+" "+last_name
         user_data={"experience":experience,"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        
+        if request.role_id ==4:
+            user_data["alternate_mobile_no"] = request.aternate_mobile_no
+            user_data["passport"] = request.passport
+            user_data["aadhaar_card"] = request.aadhaar_card
+            user_data["selfie"] = request.selfie
+            user_data["present_address"] = request.present_address
+            user_data["present_occupation"] = request.present_occupation
+            user_data["employer_name"] = request.employer_name
+            user_data["qualification"] = request.qualification
+            user_data["account_holder_name"] = request.account_holder_name
+            user_data["bank_name"] = request.bank_name
+            user_data["bank_account_number"] = request.bank_account_number
+            user_data["ifsc_code"] = request. ifsc_code
+            user_data["upload_check"] = request.upload_check
+            user_data["referrals"] = request.referrals
+
         new_user = AdminUser(**user_data)
+
         db.add(new_user)
         db.commit()
         if new_user.id:

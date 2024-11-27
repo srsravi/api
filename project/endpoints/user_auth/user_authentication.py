@@ -150,7 +150,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
-@router.post("/enquirer-to-customer",  response_description="enquirer to make as customer")
+@router.post("/update-enquirer-status",  response_description="enquirer to make as customer")
 async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
         enquiry_id =  request.enquiry_id
@@ -167,7 +167,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         enquiry_data.status_id =2
         db.commit()
         background_tasks.add_task(Email.send_mail, recipient_email=[enquiry_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-        return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=[],code="")
+        return Utility.json_response(status=SUCCESS, message="Enquir status changed successfully", error=[],data=[],code="")
         
     except Exception as E:
         print(E)

@@ -21,6 +21,26 @@ class AdminUser(BaseModel):
     email = Column(String(161))
     mobile_no = Column(String(15))
     alternate_mobile_no = Column(String(15),default='')
+
+    passport = Column(Text,default='')
+    aadhaar_card  = Column(Text,default='')
+    selfie = Column(Text,default='')
+
+    
+    present_address = Column(Text,default='')
+    present_occupation = Column(Text,default='')
+    employer_name = Column(Text,default='')
+    qualification = Column(Text,default='')
+
+    
+    account_holder_name = Column(Text,default='')
+    bank_name = Column(Text,default='')
+    bank_account_number = Column(Text,default='')
+    ifsc_code = Column(Text,default='')
+    upload_check = Column(Text,default='')
+    referrals = Column(Text,default='')
+
+
     last_login = Column(DateTime, default= datetime.now(timezone.utc))
     login_count =  Column(Integer, default=0,comment='User Login count') 
     login_fail_count =  Column(Integer, default=0,comment='User Login Fail count')
