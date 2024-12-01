@@ -199,6 +199,7 @@ class LoanapplicationModel(BaseModel):
 class EnquiryModel(BaseModel):
     __tablename__ = "enquiries"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tfs_id = Column(String(150), default='')
     name = Column(String(150), default='')
     email = Column(String(161), nullable=False )
     mobile_no = Column(String(15), default="")

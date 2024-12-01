@@ -5,7 +5,28 @@
 	},
 	{
 		"id": 2,
-		"name": "Closed"
+		"name": "Intrested"
+	},
+	{
+		"id": 3,
+		"name": "Not Intrested"
+	},
+	{
+		"id": 4,
+		"name": "Call Back"
+	},
+	{
+		"id": 5,
+		"name": "Call Not Reachable"
+	},
+	{
+		"id": 6,
+		"name": "No Response"
+	},
+	{
+		"id": 7,
+		"name": "Switched Off"
 	}
+	
 	
 ]
