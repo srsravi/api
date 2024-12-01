@@ -38,6 +38,7 @@ class MdCountries(BaseModel):
     #flag = Column(String(100), default='' )
 
     #user_country = relationship("CustomerModal", back_populates="country_details")
+    country_users = relationship('AdminUser', back_populates='country_details')
 
     
 
@@ -48,6 +49,7 @@ class MdStates(BaseModel):
     name =   Column(String(100),default='' )
     mapName=  Column(String(100),default='' )
     countryId = Column(Integer, default=None)
+    state_users = relationship('AdminUser', back_populates='state_details')
 
 class MdLocations(BaseModel):
     __tablename__ = "md_locations"
@@ -55,6 +57,7 @@ class MdLocations(BaseModel):
     name =   Column(String(100),default='' )
     stateId=  Column(Integer,default=None)
     countryId = Column(Integer, default=None)
+    location_users = relationship('AdminUser', back_populates='location_details')
 
 
 #md_reminder_status

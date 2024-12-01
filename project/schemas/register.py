@@ -456,7 +456,9 @@ class addSalesUserSchema(BaseModel):
     aadhaar_card:Optional[str]
     selfie:Optional[str]
 
-    
+    country_id:Optional[int] = None
+    state_id:Optional[int] = None
+    location_id:Optional[int] = None
     present_address:Optional[str]
     present_occupation:Optional[str]
     employer_name:Optional[str]

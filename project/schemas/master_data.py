@@ -26,7 +26,7 @@ class getMasterData(BaseModel):
                 md_loan_application_status , \n
                             ''')
     country_id:Optional[int] = Field(None,  description=COUNTRY_STATES_LIST)
-    state_id:Optional[str] = Field(None,  description=STATE_LOCATION_LIST  )
+    state_id:Optional[int] = Field(None,  description=STATE_LOCATION_LIST  )
     
 
 class Document(BaseModel):

@@ -92,6 +92,16 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         mobile_no  =  request.mobile_no
         experience =  request.experience
         role_id    =  request.role_id
+
+        country_id = None
+        state_id = None
+        location_id =  None
+        if request.country_id:
+            country_id = request.country_id
+        if request.state_id:
+            state_id = request.state_id
+        if request.location_id:
+            location_id = request.location_id
         
         
         otp=str(Utility.generate_otp())
@@ -120,6 +130,10 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             user_data["ifsc_code"] = request. ifsc_code
             user_data["upload_check"] = request.upload_check
             user_data["referrals"] = request.referrals
+            user_data["country_id"] = country_id
+            user_data["state_id"] = state_id
+            user_data["location_id"] = location_id
+           
 
         new_user = AdminUser(**user_data)
 

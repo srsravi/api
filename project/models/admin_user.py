@@ -26,7 +26,18 @@ class AdminUser(BaseModel):
     aadhaar_card  = Column(Text,default='')
     selfie = Column(Text,default='')
 
+    country_id = Column(Integer, ForeignKey('md_countries.id'), nullable=True,default=None)
+    country_details = relationship('MdCountries', back_populates='country_users')
     
+    
+    state_id = Column(Integer, ForeignKey('md_states.id'), nullable=True,default=None)
+    state_details = relationship('MdStates', back_populates='state_users')
+    
+
+    location_id = Column(Integer, ForeignKey('md_locations.id'), nullable=True,default=None)
+    location_details = relationship('MdLocations', back_populates='location_users')
+    
+
     present_address = Column(Text,default='')
     present_occupation = Column(Text,default='')
     employer_name = Column(Text,default='')
