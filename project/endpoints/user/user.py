@@ -51,6 +51,7 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
                     EnquiryModel.description.ilike(search),
                     EnquiryModel.email.ilike(search),
                     EnquiryModel.mobile_no.ilike(search),
+                    EnquiryModel.tfs_id.ilike(search),
                     
                 )
             )
