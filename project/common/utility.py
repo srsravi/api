@@ -201,6 +201,8 @@ class Utility:
     @staticmethod
     def generate_tfs_code(role_id):
         code = "TFS"
+        if role_id=="ENQUIRY_OTP":
+            code = "TFS-ENQ"
         if role_id==5:
             code = "TFS-M"
         return code

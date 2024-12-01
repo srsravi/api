@@ -6,7 +6,7 @@ from ...models.master_data_models import ServiceConfigurationModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
-from ...schemas.register import EnquiryRequestSchema,EnquiryBecomeCustomer
+from ...schemas.register import EnquiryRequestSchema,EnquiryRequestOtpSchema,EnquiryBecomeCustomer
 import re
 from ...schemas.login import Login
 from ...constant import messages as all_messages
@@ -23,8 +23,9 @@ router = APIRouter(
     tags=["User Authentication"],
     responses={404: {"description": "Not found"}},
 )
-@router.post("/enquiry",  response_description="Customer enquiry")
-async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
+
+@router.post("/enquiry-otp",  response_description="Enquiry Otp")
+async def enquiry_otp(request:EnquiryRequestOtpSchema,background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
     try:
         tenant_id =1
         service_type_id = None
@@ -37,7 +38,52 @@ async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks
             tenant_id = request.tenant_id
         if request.service_type_id is not None:
             service_type_id = request.service_type_id
-        enquiry_data = EnquiryModel(name=name,email=email,mobile_no=mobile_no,service_type_id=service_type_id,tenant_id=tenant_id,description=description)
+        otp =str(Utility.generate_otp())
+        category ="ENQUIRY_OTP"
+        new_token = AuthHandler().encode_token({"mobile_no":mobile_no,"catrgory":category,"otp":otp,"email":email,"name":name})
+        user_dict={"user_id":1,"catrgory":category,"otp":otp,"token":new_token,"ref_id":1}
+        enquiry_data = tokensModel(**user_dict)
+        db.add(enquiry_data)
+        db.commit()
+        if enquiry_data.id:
+            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='enquirey_otp.html',data={"name":name,"otp":otp})
+            return Utility.json_response(status=SUCCESS, message="Thank you for reaching out to us", error=[],data={},code="SIGNUP_PROCESS_PENDING")
+            
+        else:            
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+    except Exception as E:
+        
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/enquiry",  response_description="Customer enquiry")
+async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
+    try:
+        tenant_id =1
+        service_type_id = None
+        mobile_no = request.mobile_no
+        email = request.email
+        name = request.name
+        description = request.description
+        otp = request.otp
+        token_data = db.query(tokensModel).filter(tokensModel.otp == otp, tokensModel.user_id==1, tokensModel.active==True, tokensModel.catrgory=="ENQUIRY_OTP").first()
+        if token_data is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
+        
+        tokendata = AuthHandler().decode_otp_token(token_data.token)
+        if tokendata is None :
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
+        
+        
+        if request.tenant_id is not None:
+            tenant_id = request.tenant_id
+        if request.service_type_id is not None:
+            service_type_id = request.service_type_id
+        tfs_id = Utility.generate_tfs_code("ENQUIRY_OTP")
+        tfs_id = f"{tfs_id}-{Utility.generate_otp(5)}"
+        enquiry_data = EnquiryModel(tfs_id=tfs_id,name=name,email=email,mobile_no=mobile_no,service_type_id=service_type_id,tenant_id=tenant_id,description=description)
+        token_data.active = False
         db.add(enquiry_data)
         db.commit()
         if enquiry_data.id:

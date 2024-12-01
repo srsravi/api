@@ -5,7 +5,9 @@ from phonenumbers import NumberParseException, is_valid_number
 import re
 from datetime import date, datetime
 
-class EnquiryRequestSchema(BaseModel):
+
+
+class EnquiryRequestOtpSchema(BaseModel):
     name:str
     email: EmailStr = Field(..., description="The email address of the user.")
     mobile_no: str = Field(..., description="The mobile phone number of the user, including the country code.")
@@ -16,7 +18,7 @@ class EnquiryRequestSchema(BaseModel):
     @field_validator('name', mode='before')
     def validate_name(cls, v, info):
         v = v.strip()
-        if not re.match(r'^[A-Za-z]+$', v):
+        if not re.match(r'^[A-Za-z ]+$', v):
             raise ValueError('Name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
         return v
     @validator('email', always=True)
@@ -35,6 +37,9 @@ class EnquiryRequestSchema(BaseModel):
             raise ValueError('Invalid phone number format.')
         return v
 
+class EnquiryRequestSchema(EnquiryRequestOtpSchema):
+    otp:str
+    
 class EnquiryBecomeCustomer(BaseModel):
     enquiry_id:int
     tenant_id: Optional[int] =1
