@@ -92,7 +92,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         mobile_no  =  request.mobile_no
         experience =  request.experience
         role_id    =  request.role_id
-
+        gender =  None
         country_id = None
         state_id = None
         location_id =  None
@@ -105,6 +105,9 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             location_id = request.location_id
         if request.pincode:
             pincode = request.pincode
+        if request.gender:
+            gender = request.gender
+            
         
         
         otp=str(Utility.generate_otp())
@@ -137,6 +140,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             user_data["state_id"] = state_id
             user_data["location_id"] = location_id
             user_data["pincode"] = pincode
+            user_data["gender"] = gender
             
            
 

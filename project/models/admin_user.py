@@ -21,6 +21,8 @@ class AdminUser(BaseModel):
     email = Column(String(161))
     mobile_no = Column(String(15))
     alternate_mobile_no = Column(String(15),default='')
+    gender = Column(String(15),default='')
+    
 
     passport = Column(Text,default='')
     aadhaar_card  = Column(Text,default='')

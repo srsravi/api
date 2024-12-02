@@ -460,6 +460,7 @@ class addSalesUserSchema(BaseModel):
     passport:Optional[str]
     aadhaar_card:Optional[str]
     selfie:Optional[str]
+    gender:Optional[str]
 
     country_id:Optional[int] = None
     state_id:Optional[int] = None

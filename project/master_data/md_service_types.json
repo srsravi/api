@@ -1,34 +1,31 @@
 [
+   
     {
         "id":1,
-        "name":"Subscription"
+        "name":"Home Loan"
     },
     {
         "id":2,
-        "name":"Home Loans"
+        "name":"Personal Loan"
+        
     },
     {
         "id":3,
-        "name":"Personal Loans"
+        "name":"Business Loan"
         
     },
     {
         "id":4,
-        "name":"Business Loans"
+        "name":"Education Loan"
         
     },
     {
         "id":5,
-        "name":"Education Loans"
+        "name":"Car Loan"
         
     },
     {
         "id":6,
-        "name":"Car Loans"
-        
-    },
-    {
-        "id":7,
         "name":"Property Investment Loan"
     }
 ]
