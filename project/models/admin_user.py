@@ -37,7 +37,7 @@ class AdminUser(BaseModel):
     location_id = Column(Integer, ForeignKey('md_locations.id'), nullable=True,default=None)
     location_details = relationship('MdLocations', back_populates='location_users')
     
-
+    pincode = Column(Text,default='')
     present_address = Column(Text,default='')
     present_occupation = Column(Text,default='')
     employer_name = Column(Text,default='')

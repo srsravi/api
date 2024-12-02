@@ -466,6 +466,7 @@ class addSalesUserSchema(BaseModel):
     location_id:Optional[int] = None
     present_address:Optional[str]
     present_occupation:Optional[str]
+    pincode:Optional[str]
     employer_name:Optional[str]
     qualification:Optional[str]
 
