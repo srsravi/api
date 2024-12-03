@@ -187,6 +187,34 @@ class MdEnquiryStatusModel(BaseModel):
         from_attributes = True
         str_strip_whitespace = True
 
+"""
+"CITY1": "MUMBAI",
+        "CITY2": "GREATER MUMBAI",
+        "STATE": "MAHARASHTRA",
+        "STD CODE": "0.0",
+        "PHONE": "9653261383.0"
+
+Keyword arguments:
+argument -- description
+Return: return_description
+"""
+
+class MdIfscCodes(BaseModel):
+     __tablename__ = "md_ifsc_codes"
+     id = Column(Integer, primary_key=True, autoincrement=True)
+     BANK = Column(String(50), default='',index=True)
+     IFSC = Column(String(50), default='' ,index=True)
+     BRANCH = Column(String(50), default='',index=True)
+     ADDRESS = Column(Text, default='')
+     CITY1 = Column(String(100), default='',index=True)
+     CITY2 = Column(String(100), default='',index=True)
+     STATE = Column(String(100), default='',index=True)
+     STD_CODE = Column(String(100), default='')
+     PHONE = Column(String(100), default='')
+     
+     class Config:
+        from_attributes = True
+        str_strip_whitespace = True
 
 
 

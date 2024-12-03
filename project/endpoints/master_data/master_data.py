@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.master_data import DownloadFile
 import re
-from ...schemas.master_data import getMasterData,CalculateCurrency,KycDocsListReq,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
+from ...schemas.master_data import getMasterData,CalculateCurrency,GetIfscCodeSchema,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
 from ...models.user_model import TenantModel
 import os
 from ...models.user_model import CustomerModal
@@ -18,8 +18,8 @@ import json
 from pathlib import Path
 from ...models.master_data_models import  MdCountries,MdLocations,MdStates,MdTaskStatus,MdTenantStatus,MdTimeZone,MdUserRole,MdUserStatus
 from sqlalchemy import desc, asc
-from ...models.master_data_models import  MdServiceTypes,MdLeadSources,MdProfessionTypes,MdProfessionSubTypes,mdIncomeTypes,MdObligationTypes, MdLoanApplicationStatus,MdSubscriptionPlansModel,ServiceConfigurationModel,MdEnquiryStatusModel
-
+from ...models.master_data_models import  MdServiceTypes,MdLeadSources,MdProfessionTypes,MdProfessionSubTypes,mdIncomeTypes,MdObligationTypes, MdLoanApplicationStatus,MdSubscriptionPlansModel,ServiceConfigurationModel,MdEnquiryStatusModel,MdIfscCodes
+from ...models.master_data_models import MdIfscCodes
 # APIRouter creates path operations for product module
 from ...constant.messages import MASTER_DATA_LIST
 from ...models.admin_user import AdminUser
@@ -60,7 +60,8 @@ file_to_model = {
             "md_loan_application_status.json":MdLoanApplicationStatus,
             "md_subscription_plans.json":MdSubscriptionPlansModel,
             "service_configuration.json":ServiceConfigurationModel,
-            "md_enquiry_status.json":MdEnquiryStatusModel
+            "md_enquiry_status.json":MdEnquiryStatusModel,
+            "md_ifsc_codes.json":MdIfscCodes
            
 
         }
@@ -199,6 +200,57 @@ def get_users(request: getMasterData ,db: Session = Depends(get_database_session
         print(e)        
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
+#GetIfscCodeSchema
+@router.post("/get-ifsccodes-data", response_description="Migrate Master Data")
+def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database_session)):
+       
+    try:
+        query = db.query(MdIfscCodes)
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter(
+                or_(
+                    MdIfscCodes.BANK.ilike(search),
+                    MdIfscCodes.IFSC.ilike(search),
+                    MdIfscCodes.BRANCH.ilike(search),
+                    MdIfscCodes.CITY1.ilike(search),
+                    MdIfscCodes.CITY2.ilike(search),
+                    
+                )
+            )
+        total_count = query.count()
+        sort_column = getattr(MdIfscCodes, filter_data.sort_by, None)
+        if sort_column:
+            
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
+            else:
+                query = query.order_by(asc(sort_column))
+        else:
+            query = query.order_by(desc("IFSC"))
+
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        # Create a paginated response
+        users_list =[]
+        for item in paginated_query:
+            temp_item = Utility.model_to_dict(item)
+            users_list.append(temp_item)
+        response_data = {
+            "total_count":total_count,
+            "list":users_list,
+            "page":filter_data.page,
+            "per_page":filter_data.per_page
+        }
+        return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")    
+        
+    except Exception as e:
+        print(e)        
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
 
 
 

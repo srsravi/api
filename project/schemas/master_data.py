@@ -24,6 +24,7 @@ class getMasterData(BaseModel):
                 md_income_types , \n
                 md_obligation_types , \n
                 md_loan_application_status , \n
+                            md_ifsc_codes, \n
                             ''')
     country_id:Optional[int] = Field(None,  description=COUNTRY_STATES_LIST)
     state_id:Optional[int] = Field(None,  description=STATE_LOCATION_LIST  )
@@ -126,6 +127,8 @@ class kycDocDetailsReqSchema(BaseModel):
 class EditKycSchema(CreateKycSchema):
     md_doc_id:int
 
+class GetIfscCodeSchema(ListRequestBase):
+    search_string: Optional[str] = None 
 
     
 
