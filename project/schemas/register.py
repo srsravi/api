@@ -44,6 +44,17 @@ class EnquiryBecomeCustomer(BaseModel):
     enquiry_id:int
     tenant_id: Optional[int] =1
     service_type_id:Optional[int] = None
+    status_id:int
+    followupdate:Optional[date] = None
+    description:str
+
+    #{"enquiry_id":1,
+    # "tenant_id":1,
+    # "status_id":2,
+    # "service_type_id":1,
+    # "followupdate":"2024-12-05",
+    # "description":"msh jkhfsfsdhfsf s sd f sd"}
+    
 
 
 class createCustomerSchema(BaseModel):
@@ -461,6 +472,8 @@ class addSalesUserSchema(BaseModel):
     aadhaar_card:Optional[str]
     selfie:Optional[str]
     gender:Optional[str]
+    date_of_birth: date = Field(..., description="Must be at least 18 years old.And format should be YYYY-MM-DD")
+    
 
     country_id:Optional[int] = None
     state_id:Optional[int] = None
@@ -481,5 +494,17 @@ class addSalesUserSchema(BaseModel):
     profile_image:Optional[str]
     role_id:int
     tenant_id:Optional[int]
+
+    @field_validator('date_of_birth', mode='before')
+    def validate_date_of_birth(cls, v, info):
+        # Ensure v is a date object
+        if isinstance(v, str):
+            v = date.fromisoformat(v)  # Convert from string to date if needed
+        today = date.today()
+        age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
+        if age < 18:
+            raise ValueError('You must be at least 18 years old. And format should be YYYY-MM-DD')
+        return v
+
     
     

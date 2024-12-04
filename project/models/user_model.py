@@ -213,6 +213,8 @@ class EnquiryModel(BaseModel):
     
     status_id = Column(Integer, ForeignKey("md_enquiry_status.id"), nullable=False, default=1 )
     enquir_status_details = relationship("MdEnquiryStatusModel", back_populates="enquiryes")
+    description = Column(Text,default="")
+    followupdate = Column(DateTime, default=None)
     
 
 

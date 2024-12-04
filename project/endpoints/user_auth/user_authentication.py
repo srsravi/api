@@ -105,30 +105,50 @@ async def enquiry(request:EnquiryRequestSchema,background_tasks: BackgroundTasks
 @router.post("/enquirer-to-customer",  response_description="enquirer to make as customer")
 async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
+        """enquiry_id:int
+    tenant_id: Optional[int] =1
+    service_type_id:Optional[int] = None
+    status_id:int
+    followupdate:Optional[date] = None
+    description:str
+        """
+        
         enquiry_id =  request.enquiry_id
         tenant_id = 1
         service_type_id =None
+        status_id = None
+        followupdate = None
+        description = ""
         if request.tenant_id:
             tenant_id = request.tenant_id
         role_id = auth_user["role_id"]
         user_id = auth_user["id"]
-
-        enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id,EnquiryModel.status_id==1).first()
-        if enquiry_data is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
         if request.service_type_id is not None:
             service_type_id = request.service_type_id
-        elif enquiry_data.service_type_id:
-            service_type_id = enquiry_data.service_type_id
-        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).first()
-        if existing_customer is not None:
-            enquiry_data.status_id =2
-            db.query(EnquiryModel).filter(EnquiryModel.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
-            db.commit()
-            return Utility.json_response(status=INTERNAL_ERROR, message="Custormer already exists", error=[], data={})
+        if request.status_id:
+            status_id = request.status_id
+        if request.followupdate:
+            followupdate = request.followupdate
+        if request.description:
+            description = request.description
         
-        user_data = CustomerModal(
-                                    
+        enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id).first()
+        if enquiry_data is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
+        
+        enquiry_data.status_id = status_id
+        enquiry_data.followupdate =followupdate
+        enquiry_data.description = description
+        enquiry_data.service_type_id = service_type_id
+        if status_id !=2:
+            db.commit()
+            return Utility.json_response(status=SUCCESS, message="Update Successfully", error=[], data={})
+
+        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).first()
+        configuration =None
+        configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
+        if existing_customer is None:            
+            user_data = CustomerModal(                                    
                                       first_name=enquiry_data.name,
                                       last_name=enquiry_data.name,
                                       name=enquiry_data.name,
@@ -138,59 +158,75 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                                       mobile_no=enquiry_data.mobile_no,
                                       password=str(Utility.uuid()),
                                       tenant_id=tenant_id,
-                                      service_type_id=enquiry_data.service_type_id
+                                      service_type_id=service_type_id
                                       )
             
-        mail_data = {"body":"Welcome to TFS"}
-        otp =str(Utility.generate_otp())
-        category ="SIGNUP_CUSTOMER"
-        db.add(user_data)
-        db.flush()
-        db.commit()
-        if user_data.id:
-            if role_id == 3:
-                user_data.salesman_id = user_id
-            if role_id == 4:
-                user_data.agent_id = user_id
+            mail_data = {"body":"Welcome to TFS"}
+            otp =str(Utility.generate_otp())
+            category ="SIGNUP_CUSTOMER"
+            db.add(user_data)
+            db.flush()
+            db.commit()
+            if user_data.id:
+                if role_id == 3:
+                    user_data.salesman_id = user_id
+                if role_id == 4:
+                    user_data.agent_id = user_id
 
-            configuration =None
-            if service_type_id is not None:
-                configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
-                db.add(new_lead)
+                if service_type_id is not None:
+                    new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                    db.add(new_lead)
+                if configuration is not None:
+                    new_lead.salesman_id = configuration.user_id
+                    user_data.salesman_id = configuration.user_id
+                    
+                user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+                udata =  Utility.model_to_dict(user_data)
+                db.query(EnquiryModel).filter(EnquiryModel.email == enquiry_data.email).update({"status_id": status_id}, synchronize_session=False)
+                rowData = {}
+                rowData['user_id'] = udata["id"]
+                rowData['first_name'] = udata.get("first_name","")
+                rowData['last_name'] = udata.get("last_name","")
+                rowData['mobile_no'] = udata.get("mobile_no",'')
+                rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                
+                mail_data = {}
+                mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                mail_data["otp"] = otp
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=udata["id"]
+                db.add(tokensModel(**user_dict))
+                enquiry_data.status_id =2
+                db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
+                db.commit()
+                link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
+            
+                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+                rowData["loanApplicationId"] = new_lead.id
+                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
+            else:
+                
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+        else:
+            new_lead =  LoanapplicationModel(subscriber_id=existing_customer.id,service_type_id=service_type_id,tenant_id=tenant_id)
+            db.add(new_lead)
+            db.commit()
             if configuration is not None:
                 new_lead.salesman_id = configuration.user_id
-                user_data.salesman_id = configuration.user_id
-                
-            user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
-            udata =  Utility.model_to_dict(user_data)
-            db.query(EnquiryModel).filter(EnquiryModel.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
-            rowData = {}
-            rowData['user_id'] = udata["id"]
-            rowData['first_name'] = udata.get("first_name","")
-            rowData['last_name'] = udata.get("last_name","")
-            rowData['mobile_no'] = udata.get("mobile_no",'')
-            rowData['date_of_birth'] = udata.get("date_of_birth",'')
-            mail_data = {}
-            mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
-            mail_data["otp"] = otp
-            user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
-            user_dict["token"]=token
-            user_dict["ref_id"]=udata["id"]
-            db.add(tokensModel(**user_dict))
-            enquiry_data.status_id =2
-            db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
-            db.commit()
-            link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
-          
-            background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
-        else:
-            print("dghdf gdfkgdh")
-            db.rollback()
-            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-    
+                existing_customer.salesman_id = configuration.user_id
+            if new_lead.id:
+                res_data = {"loanApplicationId":None}
+                res_data["loanApplicationId"] = new_lead.id
+                return Utility.json_response(status=SUCCESS, message="Lead Added successfully", error=[],data=res_data,code="LEAD_CREATED_SUCCESS")
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+            
     except Exception as E:
         print(E)
         db.rollback()

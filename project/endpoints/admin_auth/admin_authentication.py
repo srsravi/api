@@ -97,6 +97,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         state_id = None
         location_id =  None
         pincode = None
+        date_of_birth =None
         if request.country_id:
             country_id = request.country_id
         if request.state_id:
@@ -107,6 +108,8 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             pincode = request.pincode
         if request.gender:
             gender = request.gender
+        if request.date_of_birth:
+            date_of_birth = request.date_of_birth
             
         
         
@@ -141,6 +144,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
             user_data["location_id"] = location_id
             user_data["pincode"] = pincode
             user_data["gender"] = gender
+            user_data["date_of_birth"] = date_of_birth 
             
            
 
