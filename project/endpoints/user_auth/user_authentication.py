@@ -330,7 +330,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
                 db.add(tokensModel(**user_dict))
                 db.commit()
                 background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='invite_user.html',data={"name":user_data.name,"link":link})
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_INVITE, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+                return Utility.json_response(status=SUCCESS, message=all_messages.USER_INVITE, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
             
             else:
                 db.rollback()
