@@ -7,7 +7,7 @@ from ...models.master_data_models import MdUserRole,MdUserStatus
 from . import APIRouter,Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import addSalesUserSchema, TenantSchema,TenantInvitationSchema,AdminRegister,InvitationSchema,TenantUserSchema,resetPassword,ForgotPasswordLinkSchema,SetPasswordSchema,UpdateAdminPassword,ForgotPassword
 import re
-from ...schemas.register import addSalesUserSchema
+from ...schemas.register import addSalesUserSchema,addAgentUserSchema
 from ...schemas.login import Login
 from fastapi import BackgroundTasks
 from ...common.mail import Email
@@ -73,6 +73,78 @@ async def register(request: AdminRegister, db: Session = Depends(get_database_se
 
 @router.post("/add-user", response_description="add user")
 async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        if login_user["role_id"] not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
+       
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if not re.fullmatch(email_regex, request.email):
+            return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
+       
+        user_id=login_user["id"]
+        if login_user["role_id"] ==1:
+            tenant_id=request.tenant_id
+        else:
+            tenant_id=login_user["tenant_id"]
+        email = request.email
+        first_name =  request.first_name
+        last_name  =  request.last_name
+        mobile_no  =  request.mobile_no
+        experience =  request.experience
+        role_id    =  request.role_id
+        gender =  None
+        country_id = None
+        state_id = None
+        location_id =  None
+        pincode = None
+        date_of_birth =None
+        
+        if request.gender:
+            gender = request.gender
+        
+        
+        otp=str(Utility.generate_otp())
+        #profile_image =  request.first_name
+        exist_user=db.query(AdminUser).filter(AdminUser.email==request.email).first()
+        if exist_user:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Email already exists", error=[], data={})
+        password=AuthHandler().get_password_hash(otp)
+        name = first_name
+        if first_name and last_name:
+            name = first_name+" "+last_name
+        user_data={"experience":experience,"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        new_user = AdminUser(**user_data)
+        db.add(new_user)
+        db.commit()
+        if new_user.id:
+            if experience:
+                new_user.experience = experience
+            category="ADD_USER"
+            user_dict={"user_id":new_user.id,"catrgory":category,"otp":otp}
+            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":role_id,"email":request.email,"name":name})
+            user_dict["token"]=token
+            user_dict["ref_id"]=new_user.id
+            db.add(tokensModel(**user_dict))
+            
+            link = f'''{WEB_URL}set-password?token={token}&user_id={new_user.id}'''
+            background_tasks.add_task(Email.send_mail, recipient_email=[email], subject="Welcome to TFS", template='add_user.html',data={"name":name,"link":link})
+            tfs_id = Utility.generate_tfs_code(role_id)
+            new_user.tfs_id = f"{tfs_id}{new_user.id}"
+            db.commit()
+            return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[], data={})
+        else:
+            db.rollback()
+            return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+
+#addAgentUserSchema
+@router.post("/add-agent", response_description="add user")
+async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
         if login_user["role_id"] not in [1,2]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})

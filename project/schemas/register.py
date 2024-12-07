@@ -467,6 +467,17 @@ class addSalesUserSchema(BaseModel):
     last_name: str
     mobile_no: str
     experience:float
+    gender:Optional[str] =""
+    role_id:int
+    tenant_id:Optional[int]
+
+    
+class addAgentUserSchema(BaseModel):
+    email:EmailStr
+    first_name: str
+    last_name: str
+    mobile_no: str
+    experience:float
     aternate_mobile_no:Optional[str]
     passport:Optional[str]
     aadhaar_card:Optional[str]
@@ -505,6 +516,7 @@ class addSalesUserSchema(BaseModel):
         if age < 18:
             raise ValueError('You must be at least 18 years old. And format should be YYYY-MM-DD')
         return v
+
 
     
     
