@@ -99,6 +99,7 @@ class MdServiceTypes(BaseModel):
     user_service = relationship("CustomerModal", back_populates="service_details")
     service_lonas_list = relationship("LoanapplicationModel", back_populates="detail_of_service")
     enquiry_service = relationship("EnquiryModel", back_populates="enquir_service_details")
+    service_configuration = relationship('ServiceConfigurationModel', back_populates='service_details')
     
     
     class Config:
@@ -169,9 +170,14 @@ class ServiceConfigurationModel(BaseModel):
     #md_subscription_plans
     __tablename__ = "service_configurations"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    service_type_id =  Column(Integer, default=None)
-    user_id =  Column(Integer, primary_key=True, default=None)
-    tenant_id =  Column(Integer, primary_key=True, default=None)
+    service_type_id = Column(Integer, ForeignKey('md_service_types.id'), nullable=True,default=None)
+    service_details = relationship('MdServiceTypes', back_populates='service_configuration')
+    user_id = Column(Integer, ForeignKey('admin.id'), nullable=True,default=None)
+    user_details = relationship('AdminUser', back_populates='user_configuration')
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), default=1, unique=False, index=True)
+    conf_tenant_details = relationship('TenantModel', back_populates='tenant_config')
+    
+    
     class Config:
         from_attributes = True
         str_strip_whitespace = True

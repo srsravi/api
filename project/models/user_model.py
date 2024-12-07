@@ -21,7 +21,8 @@ class TenantModel(BaseModel):
     tenant_user = relationship('CustomerModal', back_populates='tenant_details')
     tenant_admin = relationship('AdminUser', back_populates='admin_tenant_details')
     tenant_enquiryes = relationship('EnquiryModel', back_populates='enquiry_tenant_details')
-    
+    tenant_config = relationship('ServiceConfigurationModel', back_populates='conf_tenant_details')
+
    
     class Config:
         from_attributes = True

@@ -42,7 +42,7 @@
     },
     {
         "id":7,
-        "service_type_id":7,
+        "service_type_id":6,
         "user_id":4,
         "tenant_id":1
     }

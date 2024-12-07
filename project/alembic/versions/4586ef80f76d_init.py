@@ -1,8 +1,8 @@
-"""Service configuration
+"""init
 
-Revision ID: ee387a0b9454
+Revision ID: 4586ef80f76d
 Revises: 
-Create Date: 2024-11-14 07:13:22.805283
+Create Date: 2024-12-07 13:50:58.482464
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ee387a0b9454'
+revision: str = '4586ef80f76d'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,6 +36,34 @@ def upgrade() -> None:
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('md_enquiry_status',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(length=50), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('md_ifsc_codes',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('BANK', sa.String(length=50), nullable=True),
+    sa.Column('IFSC', sa.String(length=50), nullable=True),
+    sa.Column('BRANCH', sa.String(length=50), nullable=True),
+    sa.Column('ADDRESS', sa.Text(), nullable=True),
+    sa.Column('CITY1', sa.String(length=100), nullable=True),
+    sa.Column('CITY2', sa.String(length=100), nullable=True),
+    sa.Column('STATE', sa.String(length=100), nullable=True),
+    sa.Column('STD_CODE', sa.String(length=100), nullable=True),
+    sa.Column('PHONE', sa.String(length=100), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_md_ifsc_codes_BANK'), 'md_ifsc_codes', ['BANK'], unique=False)
+    op.create_index(op.f('ix_md_ifsc_codes_BRANCH'), 'md_ifsc_codes', ['BRANCH'], unique=False)
+    op.create_index(op.f('ix_md_ifsc_codes_CITY1'), 'md_ifsc_codes', ['CITY1'], unique=False)
+    op.create_index(op.f('ix_md_ifsc_codes_CITY2'), 'md_ifsc_codes', ['CITY2'], unique=False)
+    op.create_index(op.f('ix_md_ifsc_codes_IFSC'), 'md_ifsc_codes', ['IFSC'], unique=False)
+    op.create_index(op.f('ix_md_ifsc_codes_STATE'), 'md_ifsc_codes', ['STATE'], unique=False)
     op.create_table('md_income_types',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=55), nullable=True),
@@ -159,15 +187,6 @@ def upgrade() -> None:
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('service_configurations',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('service_type_id', sa.Integer(), nullable=True),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('tenant_id', sa.Integer(), nullable=False),
-    sa.Column('created_on', sa.DateTime(), nullable=True),
-    sa.Column('updated_on', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id', 'user_id', 'tenant_id')
-    )
     op.create_table('tenants',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=150), nullable=True),
@@ -212,6 +231,24 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=161), nullable=True),
     sa.Column('mobile_no', sa.String(length=15), nullable=True),
     sa.Column('alternate_mobile_no', sa.String(length=15), nullable=True),
+    sa.Column('gender', sa.String(length=15), nullable=True),
+    sa.Column('passport', sa.Text(), nullable=True),
+    sa.Column('aadhaar_card', sa.Text(), nullable=True),
+    sa.Column('selfie', sa.Text(), nullable=True),
+    sa.Column('country_id', sa.Integer(), nullable=True),
+    sa.Column('state_id', sa.Integer(), nullable=True),
+    sa.Column('location_id', sa.Integer(), nullable=True),
+    sa.Column('pincode', sa.Text(), nullable=True),
+    sa.Column('present_address', sa.Text(), nullable=True),
+    sa.Column('present_occupation', sa.Text(), nullable=True),
+    sa.Column('employer_name', sa.Text(), nullable=True),
+    sa.Column('qualification', sa.Text(), nullable=True),
+    sa.Column('account_holder_name', sa.Text(), nullable=True),
+    sa.Column('bank_name', sa.Text(), nullable=True),
+    sa.Column('bank_account_number', sa.Text(), nullable=True),
+    sa.Column('ifsc_code', sa.Text(), nullable=True),
+    sa.Column('upload_check', sa.Text(), nullable=True),
+    sa.Column('referrals', sa.Text(), nullable=True),
     sa.Column('last_login', sa.DateTime(), nullable=True),
     sa.Column('login_count', sa.Integer(), nullable=True, comment='User Login count'),
     sa.Column('login_fail_count', sa.Integer(), nullable=True, comment='User Login Fail count'),
@@ -226,13 +263,34 @@ def upgrade() -> None:
     sa.Column('tenant_id', sa.Integer(), nullable=True),
     sa.Column('created_on', sa.DateTime(), nullable=True),
     sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['country_id'], ['md_countries.id'], ),
+    sa.ForeignKeyConstraint(['location_id'], ['md_locations.id'], ),
     sa.ForeignKeyConstraint(['role_id'], ['md_user_roles.id'], ),
+    sa.ForeignKeyConstraint(['state_id'], ['md_states.id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['md_user_status.id'], ),
     sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_admin_tenant_id'), 'admin', ['tenant_id'], unique=False)
     op.create_index(op.f('ix_admin_tfs_id'), 'admin', ['tfs_id'], unique=True)
+    op.create_table('enquiries',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('tfs_id', sa.String(length=150), nullable=True),
+    sa.Column('name', sa.String(length=150), nullable=True),
+    sa.Column('email', sa.String(length=161), nullable=False),
+    sa.Column('mobile_no', sa.String(length=15), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('tenant_id', sa.Integer(), nullable=False),
+    sa.Column('service_type_id', sa.Integer(), nullable=True),
+    sa.Column('status_id', sa.Integer(), nullable=False),
+    sa.Column('followupdate', sa.DateTime(), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['service_type_id'], ['md_service_types.id'], ),
+    sa.ForeignKeyConstraint(['status_id'], ['md_enquiry_status.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('admin_user_details',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('admin_user_id', sa.Integer(), nullable=True),
@@ -281,7 +339,7 @@ def upgrade() -> None:
     sa.Column('tenant_id', sa.Integer(), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.Column('status_id', sa.Integer(), nullable=False),
-    sa.Column('service_type_id', sa.Integer(), nullable=False),
+    sa.Column('service_type_id', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('accepted_terms', sa.Boolean(), nullable=True),
     sa.Column('md_subscription_plan_id', sa.Integer(), nullable=True),
@@ -298,6 +356,19 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_customers_tenant_id'), 'customers', ['tenant_id'], unique=False)
     op.create_index(op.f('ix_customers_tfs_id'), 'customers', ['tfs_id'], unique=True)
+    op.create_table('service_configurations',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('service_type_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('tenant_id', sa.Integer(), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['service_type_id'], ['md_service_types.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['admin.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_service_configurations_tenant_id'), 'service_configurations', ['tenant_id'], unique=False)
     op.create_table('admin_notificatuions',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
@@ -321,7 +392,7 @@ def upgrade() -> None:
     sa.Column('tenant_id', sa.Integer(), nullable=True),
     sa.Column('service_type_id', sa.Integer(), nullable=True),
     sa.Column('application_form_id', sa.String(length=20), nullable=True),
-    sa.Column('loanAmount', sa.Float(), nullable=False),
+    sa.Column('loanAmount', sa.String(length=50), nullable=True),
     sa.Column('lead_sourse_id', sa.Integer(), nullable=True),
     sa.Column('profession_type_id', sa.Integer(), nullable=True),
     sa.Column('profession_sub_type_id', sa.Integer(), nullable=True),
@@ -341,9 +412,11 @@ def upgrade() -> None:
     sa.Column('last_turnover_year', sa.String(length=55), nullable=True),
     sa.Column('last_year_turnover_amount', sa.Float(), nullable=True),
     sa.Column('last_year_itr', sa.Float(), nullable=True),
+    sa.Column('lastYearITRamount', sa.Float(), nullable=True),
     sa.Column('current_turnover_year', sa.String(length=55), nullable=True),
     sa.Column('current_year_turnover_amount', sa.Float(), nullable=True),
     sa.Column('current_year_itr', sa.Float(), nullable=True),
+    sa.Column('presentYearITRamount', sa.Float(), nullable=True),
     sa.Column('avg_income_per_month', sa.Float(), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
@@ -354,6 +427,11 @@ def upgrade() -> None:
     sa.Column('salesman_id', sa.Integer(), nullable=True),
     sa.Column('admin_id', sa.Integer(), nullable=True),
     sa.Column('loan_approved_by', sa.Integer(), nullable=True),
+    sa.Column('eligible', sa.String(length=5), nullable=True),
+    sa.Column('loan_eligible_type', sa.Integer(), nullable=True),
+    sa.Column('loan_eligible_amount', sa.Float(), nullable=True),
+    sa.Column('fdir', sa.Text(), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True, comment='description'),
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('status_id', sa.Integer(), nullable=True),
     sa.Column('created_on', sa.DateTime(), nullable=True),
@@ -366,7 +444,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['service_type_id'], ['md_service_types.id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['md_loan_application_status.id'], ),
     sa.ForeignKeyConstraint(['subscriber_id'], ['customers.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id', 'loanAmount')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_application_details_lead_sourse_id'), 'application_details', ['lead_sourse_id'], unique=False)
     op.create_index(op.f('ix_application_details_subscriber_id'), 'application_details', ['subscriber_id'], unique=False)
@@ -398,10 +476,13 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_admin_notificatuions_user_id'), table_name='admin_notificatuions')
     op.drop_index(op.f('ix_admin_notificatuions_admin_id'), table_name='admin_notificatuions')
     op.drop_table('admin_notificatuions')
+    op.drop_index(op.f('ix_service_configurations_tenant_id'), table_name='service_configurations')
+    op.drop_table('service_configurations')
     op.drop_index(op.f('ix_customers_tfs_id'), table_name='customers')
     op.drop_index(op.f('ix_customers_tenant_id'), table_name='customers')
     op.drop_table('customers')
     op.drop_table('admin_user_details')
+    op.drop_table('enquiries')
     op.drop_index(op.f('ix_admin_tfs_id'), table_name='admin')
     op.drop_index(op.f('ix_admin_tenant_id'), table_name='admin')
     op.drop_table('admin')
@@ -409,7 +490,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_tickets_user_id'), table_name='tickets')
     op.drop_table('tickets')
     op.drop_table('tenants')
-    op.drop_table('service_configurations')
     op.drop_table('md_user_status')
     op.drop_index(op.f('ix_md_user_roles_name'), table_name='md_user_roles')
     op.drop_table('md_user_roles')
@@ -427,5 +507,13 @@ def downgrade() -> None:
     op.drop_table('md_loan_application_status')
     op.drop_table('md_lead_sources')
     op.drop_table('md_income_types')
+    op.drop_index(op.f('ix_md_ifsc_codes_STATE'), table_name='md_ifsc_codes')
+    op.drop_index(op.f('ix_md_ifsc_codes_IFSC'), table_name='md_ifsc_codes')
+    op.drop_index(op.f('ix_md_ifsc_codes_CITY2'), table_name='md_ifsc_codes')
+    op.drop_index(op.f('ix_md_ifsc_codes_CITY1'), table_name='md_ifsc_codes')
+    op.drop_index(op.f('ix_md_ifsc_codes_BRANCH'), table_name='md_ifsc_codes')
+    op.drop_index(op.f('ix_md_ifsc_codes_BANK'), table_name='md_ifsc_codes')
+    op.drop_table('md_ifsc_codes')
+    op.drop_table('md_enquiry_status')
     op.drop_table('md_countries')
     # ### end Alembic commands ###

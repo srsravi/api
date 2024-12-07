@@ -59,7 +59,7 @@ file_to_model = {
             "md_obligation_types.json": MdObligationTypes,
             "md_loan_application_status.json":MdLoanApplicationStatus,
             "md_subscription_plans.json":MdSubscriptionPlansModel,
-            "service_configuration.json":ServiceConfigurationModel,
+           
             "md_enquiry_status.json":MdEnquiryStatusModel,
             "md_ifsc_codes.json":MdIfscCodes
            
@@ -69,6 +69,11 @@ related_tables ={
    
    "default_admin.json":AdminUser,
     }
+third_lavel_related_tables ={
+   
+    "service_configuration.json":ServiceConfigurationModel,
+    }
+
 
 
 @router.websocket("/ws")
@@ -137,6 +142,7 @@ def get_users(db: Session = Depends(get_database_session)):
     #insert Main data
     insertBulkData(file_to_model)
     insertBulkData(related_tables)
+    insertBulkData(third_lavel_related_tables)
     return {"status": "SUCCESS", "message": "Data migrated successfully"}
 
     
