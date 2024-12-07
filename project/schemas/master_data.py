@@ -130,5 +130,8 @@ class EditKycSchema(CreateKycSchema):
 class GetIfscCodeSchema(ListRequestBase):
     search_string: Optional[str] = None 
 
-    
+class ConfigurationSchema(BaseModel):
+
+    teanat_id:Optional[int] =1
+    user_id:Optional[int] =None
 

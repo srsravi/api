@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.master_data import DownloadFile
 import re
-from ...schemas.master_data import getMasterData,CalculateCurrency,GetIfscCodeSchema,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
+from ...schemas.master_data import getMasterData,CalculateCurrency,ConfigurationSchema,GetIfscCodeSchema,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
 from ...models.user_model import TenantModel
 import os
 from ...models.user_model import CustomerModal
@@ -310,6 +310,59 @@ async def get_currency_rates(request: CalculateCurrency):
         result = await get_currency(request.from_currency,request.to_currency)
         return Utility.json_response(status=SUCCESS, message="", error=[], data=result)                          
                         
+    except Exception as E:
+        print(E)        
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
+#ServiceConfigurationModel
+@router.post("/get-service-configuration", response_description="UploadFIles")
+async def upload_file(request:ConfigurationSchema,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+        tenant_id =1
+        if auth_user["role_id"] ==1:
+            tenant_id = request.teanat_id
+        elif "tenant_id" in auth_user:
+            tenant_id = auth_user["tenant_id"]
+
+        query =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.tenant_id==tenant_id)
+        if request.user_id and auth_user["role_id"] in [1,2]:
+            query = query.filter(ServiceConfigurationModel.user_id==request.user_id)
+        elif auth_user["role_id"] !=1 and auth_user["role_id"] !=2:
+            query = query.filter(ServiceConfigurationModel.user_id==auth_user["id"])
+
+        query = query.all()
+        users_list =[]
+        for item in query:
+            temp_item = Utility.model_to_dict(item)
+            if "tenant_id" in temp_item and temp_item["tenant_id"] is not None:
+                temp_item["tenant_details"] = Utility.model_to_dict(item.conf_tenant_details)
+           
+            if "user_id" in temp_item and temp_item["user_id"] is not None:
+                user_details =  Utility.model_to_dict(item.user_details)
+                temp_item["user_details"] = {}
+                temp_item["user_details"]["id"] =user_details["id"]
+                temp_item["user_details"]["tfs_id"] =user_details["tfs_id"]
+                temp_item["user_details"]["first_name"] =user_details["first_name"]
+                temp_item["user_details"]["last_name"] =user_details["last_name"]
+                temp_item["user_details"]["name"] =user_details["name"]
+                temp_item["user_details"]["email"] =user_details["email"]
+                
+
+
+            if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
+                temp_item["service_details"] = Utility.model_to_dict(item.service_details)
+                
+            users_list.append(temp_item)    
+            
+            response_data = {
+            "total_count":len(users_list),
+            "list":users_list,
+            "page":1,
+            "per_page":len(users_list)
+            }
+            return Utility.json_response(status=SUCCESS, message="Configuration List successfully retrieved", error=[], data=response_data,code="")
+
+
     except Exception as E:
         print(E)        
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
