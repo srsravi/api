@@ -224,9 +224,6 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
             else:
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
-
-            
     except Exception as E:
         print(E)
         db.rollback()
@@ -258,16 +255,18 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
 
 #createCustomerSchema
 @router.post("/invite-customer", response_description="Invite Customer")
-async def invite_customer(request: createCustomerSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+async def invite_customer(request: createCustomerSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
-
         tenant_id = 1
+        role_id = auth_user["role_id"]
         mobile_no = request.mobile_no
         email = request.email
         first_name = request.first_name
         last_name = request.last_name
-        if request.tenant_id is not None:
+        if request.tenant_id is not None and role_id ==1:
             tenant_id = request.tenant_id
+        elif auth_user["tenant_id"] and role_id !=1:
+            tenant_id = auth_user["tenant_id"]
         service_type_id = request.service_type_id
         email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         if not re.fullmatch(email_regex, email):
@@ -276,11 +275,12 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_MOBILE,error=[], data={})
         user_obj = db.query(CustomerModal).filter(CustomerModal.email == email)
         otp =str(Utility.generate_otp())
-        name =  first_name
+        name =  request.first_name
         category ="SIGNUP_CUSTOMER"
         if last_name:
-            name = f"{first_name} last_name"
+            name = f"{request.first_name} {request.last_name}"
         if user_obj.count() <=0:
+            configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
             user_data = CustomerModal(
                                     
                                       first_name=first_name,
@@ -300,8 +300,20 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             db.flush()
             db.commit()
             if user_data.id:
-                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id)
+                configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
+                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
+                if configuration is not None:
+                    new_lead.salesman_id = configuration.user_id
+                    user_data.salesman_id = configuration.user_id
+                #assig salse man
+                if role_id ==3:
+                    new_lead.salesman_id = auth_user["id"]
+                    user_data.salesman_id = auth_user["id"]
+                elif role_id ==4:
+                    #assign agent id
+                    new_lead.agent_id = auth_user["id"]
+                    user_data.agent_id = auth_user["id"]
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)
                 rowData = {}
@@ -312,13 +324,14 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
                 rowData['date_of_birth'] = udata.get("date_of_birth",'')
                 otp = str(Utility.generate_otp())
                 category = "ADD_USER"
-                link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={user_data.id}'''
                 token = AuthHandler().encode_token({"user_id":user_data.id,"catrgory":category,"otp":otp,"invite_role_id":user_data.role_id,"email":user_data.email,"name":user_data.name})
+                link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
                 user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp,"token":token,"ref_id":user_data.id}
                 db.add(tokensModel(**user_dict))
                 db.commit()
-                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
+                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='invite_user.html',data={"name":user_data.name,"link":link})
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_INVITE, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+            
             else:
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -345,23 +358,45 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp}
             user_dict["token"]=new_token
             user_dict["ref_id"]=existing_user.id
-            if  existing_user.status_id == 1 or existing_user.status_id == 2 :
+            if existing_user.status_id == 1:
+                """
+                otp = str(Utility.generate_otp())
+                msg = all_messages.ACCOUNT_EXISTS_PENDING_EMAIL_VERIFICATION
+                code = "SIGNUP_VERIFICATION_PENDING"                
+                
+                mail_data = {}
+                mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                mail_data["otp"] = otp
+                
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":request.email,"name":name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=udata["id"]
+                db.add(tokensModel(**user_dict))
+                db.commit()
+                background_tasks.add_task(Email.send_mail,recipient_email=[udata["email"]], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
+                """   
+                
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="User already exists", error=[], data=rowData,code="USER_ALREADY_EXISTS")
+            elif  existing_user.status_id == 2:
+                """
+                link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
                 otp = str(Utility.generate_otp())
                 category = "ADD_USER"
                 token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
                 user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp,"token":token,"ref_id":existing_user.id}
-                
                 db.add(tokensModel(**user_dict))
                 db.commit()
                 background_tasks.add_task(Email.send_mail, recipient_email=[existing_user.email], subject="Welcome to TFS", template='add_user.html',data={"name":existing_user.name,"link":link})
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+                """
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="User already exists", error=[], data=rowData,code="USER_ALREADY_EXISTS")
             
             elif  existing_user.status_id == 3:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_USER_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_USER_PROFILE_IS_ACTIVE")
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_PROFILE_IS_ACTIVE")
             elif existing_user.status_id == 4:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_PROFILE_INACTIVE, error=[], data=rowData)
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data=rowData)
             elif existing_user.status_id == 5:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_PROFILE_DELETED, error=[], data=rowData)
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data=rowData)
             else:
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -375,7 +410,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
 @router.post("/signup-customer", response_description="Customer Signup")
 async def register_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
-        tenant_id = None
+        tenant_id = 1
         mobile_no = request.mobile_no
         email = request.email
         first_name = request.first_name
