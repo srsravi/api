@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.master_data import DownloadFile
 import re
-from ...schemas.master_data import getMasterData,CalculateCurrency,ConfigurationSchema,GetIfscCodeSchema,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
+from ...schemas.master_data import getMasterData,CalculateCurrency,ConfigurationAddSchema,ConfigurationEditSchema,ConfigurationListSchema,GetIfscCodeSchema,Kycheck,Kycenable,CreateKycSchema,kycDocDetailsReqSchema,EditKycSchema
 from ...models.user_model import TenantModel
 import os
 from ...models.user_model import CustomerModal
@@ -315,8 +315,69 @@ async def get_currency_rates(request: CalculateCurrency):
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
 
 #ServiceConfigurationModel
+
+@router.post("/add-service-configuration", response_description="add service configuration")
+async def add_service_configuration(request:ConfigurationAddSchema,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+        tenant_id =1
+        if auth_user["role_id"] ==1:
+            tenant_id = request.teanat_id
+        elif "tenant_id" in auth_user:
+            tenant_id = auth_user["tenant_id"]
+
+        query =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.tenant_id==tenant_id,
+                                                            ServiceConfigurationModel.service_type_id==request.service_type_id,
+                                                            ServiceConfigurationModel.user_id==request.user_id
+                                                            )
+        if query.count()>0:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.CONFORMATION_EXISTS, error=[], data=[])
+        else:
+
+            new_config = ServiceConfigurationModel(
+                service_type_id =request.service_type_id,
+                user_id =request.user_id,
+                tenant_id = tenant_id
+            )
+            db.add(new_config)
+            db.commit()
+            if new_config.id:
+                return Utility.json_response(status=SUCCESS, message=all_messages.CONFORMATION_ADDED, error=[], data=[])
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+    except Exception as E:
+        print(E)        
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
+@router.post("/edit-service-configuration", response_description="Edit service configuration")
+async def add_service_configuration(request:ConfigurationEditSchema,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+        tenant_id =1
+        if auth_user["role_id"] ==1:
+            tenant_id = request.teanat_id
+        elif "tenant_id" in auth_user:
+            tenant_id = auth_user["tenant_id"]
+
+        result =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.tenant_id==tenant_id,
+                                                            ServiceConfigurationModel.id==request.configuration_id
+                                                            
+                                                            ).one()
+        if result is None :
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Configuration Not Found!", error=[], data=[])
+        else:
+            result.service_type_id =request.service_type_id
+            result.user_id =request.user_id
+            db.commit()
+            return Utility.json_response(status=SUCCESS, message="Configuration successfully updated", error=[], data={},code="")
+
+
+        
+    except Exception as E:
+        print(E)        
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
 @router.post("/get-service-configuration", response_description="UploadFIles")
-async def upload_file(request:ConfigurationSchema,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+async def upload_file(request:ConfigurationListSchema,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
         tenant_id =1
         if auth_user["role_id"] ==1:
@@ -346,6 +407,7 @@ async def upload_file(request:ConfigurationSchema,auth_user=Depends(AuthHandler(
                 temp_item["user_details"]["last_name"] =user_details["last_name"]
                 temp_item["user_details"]["name"] =user_details["name"]
                 temp_item["user_details"]["email"] =user_details["email"]
+                temp_item["user_details"]["mobile_no"] =user_details["mobile_no"]
                 
 
 

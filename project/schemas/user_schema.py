@@ -184,6 +184,7 @@ class AdminUserListResponse(BaseModel):
     id: int
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    name: Optional[str] = None
     email: str
     mobile_no: Optional[str] = None
     tenant_id: Optional[int] = None

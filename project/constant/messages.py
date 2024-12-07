@@ -77,6 +77,8 @@ KYC_STATUS_UPDATE_NOT_ALLOWED="KYC Update not allowed.Please make sure all KYC d
 KYC_DOCUMENTS_NOT_UPLOADED="KYC documents are not uploaded!"
 LOAN_APPL_FORM_NOT_FOUND="Loan Application not Found"
 USER_INVITE="successfully Invited!"
+CONFORMATION_EXISTS ="Configuration already exists"
+CONFORMATION_ADDED ="Configuration Added  successfully!"
 
 
 

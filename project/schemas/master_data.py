@@ -130,8 +130,16 @@ class EditKycSchema(CreateKycSchema):
 class GetIfscCodeSchema(ListRequestBase):
     search_string: Optional[str] = None 
 
-class ConfigurationSchema(BaseModel):
+class ConfigurationListSchema(BaseModel):
 
     teanat_id:Optional[int] =1
     user_id:Optional[int] =None
+
+class ConfigurationAddSchema(BaseModel):
+    teanat_id:Optional[int] =1
+    user_id:Optional[int] =None
+    service_type_id:int
+
+class ConfigurationEditSchema(ConfigurationAddSchema):
+    configuration_id:int
 
