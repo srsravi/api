@@ -638,4 +638,8 @@ class PaginatedBeneficiaryResponse(BaseModel):
     list: List[BeneficiaryResponse]
     page: int
     per_page: int
-   
+
+class ApplyLoanSchema(BaseModel):
+    service_type_id:int
+    user_id:int
+    tenant_id:Optional[int] =1

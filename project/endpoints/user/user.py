@@ -4,7 +4,7 @@ from ...models.user_model import CustomerModal
 from ...models.master_data_models import MdUserRole,MdUserStatus,MdCountries
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,PaginatedUserResponse,PaginatedBeneficiaryResponse,GetUserDetailsReq,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,PaginatedBeneficiaryResponse,GetUserDetailsReq,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 from ...schemas.user_schema import UpdateKycStatus
 from ...models.user_model import NotificationModel
 
@@ -510,101 +510,143 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
-@router.post("/applications-list", response_description="Fetch Users List")
+@router.post("/applications-list", response_description="Fetch Applications List")
 async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
-    #user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
-    #AuthHandler().user_validate(user_obj)
-    # if auth_user.get("role_id", -1) not in [1,2]:
-    #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
-
+    try:
     
-    query = db.query(LoanapplicationModel).options(
-        joinedload(LoanapplicationModel.subscriber),
-        joinedload(LoanapplicationModel.detail_of_service),
-        joinedload(LoanapplicationModel.created_by_details),
-        joinedload(LoanapplicationModel.lead_sourse_details),
-        joinedload(LoanapplicationModel.profession_details),
-        joinedload(LoanapplicationModel.profession_sub_type_details),
-        joinedload(LoanapplicationModel.income_type_details),
-        joinedload(LoanapplicationModel.created_by_details),
-        joinedload(LoanapplicationModel.status_details),
-        
-    )
-
-    if filter_data.search_string:
-        search = f"%{filter_data.search_string}%"
-        query = query.filter(
-            or_(
-                LoanapplicationModel.subscriber.name.ilike(search),
-                LoanapplicationModel.subscriber.email.ilike(search),
-                
-            )
+        query = db.query(LoanapplicationModel).options(
+            joinedload(LoanapplicationModel.subscriber),
+            joinedload(LoanapplicationModel.detail_of_service),
+            joinedload(LoanapplicationModel.created_by_details),
+            joinedload(LoanapplicationModel.lead_sourse_details),
+            joinedload(LoanapplicationModel.profession_details),
+            joinedload(LoanapplicationModel.profession_sub_type_details),
+            joinedload(LoanapplicationModel.income_type_details),
+            joinedload(LoanapplicationModel.created_by_details),
+            joinedload(LoanapplicationModel.status_details),
+            
         )
-    if filter_data.tenant_id:
-        query = query.filter(LoanapplicationModel.tenant_id.in_(filter_data.tenant_id))
-       
-    
-    if filter_data.status_ids:
-        query = query.filter(LoanapplicationModel.status_id.in_(filter_data.status_ids))
-    
-     # Total count of users matching the filters
-    
-    total_count = query.count()
-    sort_column = getattr(LoanapplicationModel, filter_data.sort_by, None)
-    if sort_column:
+
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter(
+                or_(
+                    LoanapplicationModel.subscriber.name.ilike(search),
+                    LoanapplicationModel.subscriber.email.ilike(search),
+                    
+                )
+            )
+        if filter_data.tenant_id:
+            query = query.filter(LoanapplicationModel.tenant_id.in_(filter_data.tenant_id))
         
-        if filter_data.sort_order == "desc":
-            query = query.order_by(desc(sort_column))
+        
+        if filter_data.status_ids:
+            query = query.filter(LoanapplicationModel.status_id.in_(filter_data.status_ids))
+        
+        # Total count of users matching the filters
+        
+        total_count = query.count()
+        sort_column = getattr(LoanapplicationModel, filter_data.sort_by, None)
+        if sort_column:
+            
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
+            else:
+                query = query.order_by(asc(sort_column))
         else:
-            query = query.order_by(asc(sort_column))
-    else:
-        query = query.order_by(desc("id"))
+            query = query.order_by(desc("id"))
 
-    # Apply pagination
-    offset = (filter_data.page - 1) * filter_data.per_page
-    paginated_query = query.offset(offset).limit(filter_data.per_page).all()
-    # Create a paginated response
-    users_list =[]
-    for item in paginated_query:
-        temp_item = Utility.model_to_dict(item)
-        """
-        joinedload(LoanapplicationModel.subscriber),
-        joinedload(LoanapplicationModel.detail_of_service),
-        joinedload(LoanapplicationModel.created_by_details),
-        joinedload(LoanapplicationModel.lead_sourse_details),
-        joinedload(LoanapplicationModel.profession_details),
-        joinedload(LoanapplicationModel.profession_sub_type_details),
-        joinedload(LoanapplicationModel.income_type_details),
-        joinedload(LoanapplicationModel.created_by_details),
-        joinedload(LoanapplicationModel.status_details),
-        """
-        if "subscriber_id" in temp_item and temp_item["subscriber_id"] is not None:
-            temp_item["subscriber"] = Utility.model_to_dict(item.subscriber)
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        # Create a paginated response
+        users_list =[]
+        for item in paginated_query:
+            temp_item = Utility.model_to_dict(item)
+            """
+            joinedload(LoanapplicationModel.subscriber),
+            joinedload(LoanapplicationModel.detail_of_service),
+            joinedload(LoanapplicationModel.created_by_details),
+            joinedload(LoanapplicationModel.lead_sourse_details),
+            joinedload(LoanapplicationModel.profession_details),
+            joinedload(LoanapplicationModel.profession_sub_type_details),
+            joinedload(LoanapplicationModel.income_type_details),
+            joinedload(LoanapplicationModel.created_by_details),
+            joinedload(LoanapplicationModel.status_details),
+            """
+            if "subscriber_id" in temp_item and temp_item["subscriber_id"] is not None:
+                temp_item["subscriber"] = Utility.model_to_dict(item.subscriber)
 
-        if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
-            temp_item["detail_of_service"] = Utility.model_to_dict(item.detail_of_service)
-        
-        if "created_by" in temp_item and temp_item["created_by"] is not None:
-            temp_item["created_by_details"] = Utility.model_to_dict(item.created_by_details)
+            if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
+                temp_item["detail_of_service"] = Utility.model_to_dict(item.detail_of_service)
+            
+            if "created_by" in temp_item and temp_item["created_by"] is not None:
+                temp_item["created_by_details"] = Utility.model_to_dict(item.created_by_details)
 
-        if "lead_sourse_id" in temp_item and temp_item["lead_sourse_id"] is not None:
-            temp_item["lead_sourse_details"] = Utility.model_to_dict(item.lead_sourse_details)
-        
-        if "profession_type_id" in temp_item and temp_item["profession_type_id"] is not None:
-            temp_item["profession_details"] = Utility.model_to_dict(item.profession_details)
-        
-        if "profession_sub_type_id" in temp_item and temp_item["profession_sub_type_id"] is not None:
-            temp_item["profession_sub_type_details"] = Utility.model_to_dict(item.profession_sub_type_details)
-        if "income_type_id" in temp_item and temp_item["income_type_id"] is not None:
-            temp_item["income_type_details"] = Utility.model_to_dict(item.income_type_details)
-        if "status_id" in temp_item:
-            temp_item["status_details"] = Utility.model_to_dict(item.status_details)
-        users_list.append(temp_item)
+            if "lead_sourse_id" in temp_item and temp_item["lead_sourse_id"] is not None:
+                temp_item["lead_sourse_details"] = Utility.model_to_dict(item.lead_sourse_details)
+            
+            if "profession_type_id" in temp_item and temp_item["profession_type_id"] is not None:
+                temp_item["profession_details"] = Utility.model_to_dict(item.profession_details)
+            
+            if "profession_sub_type_id" in temp_item and temp_item["profession_sub_type_id"] is not None:
+                temp_item["profession_sub_type_details"] = Utility.model_to_dict(item.profession_sub_type_details)
+            if "income_type_id" in temp_item and temp_item["income_type_id"] is not None:
+                temp_item["income_type_details"] = Utility.model_to_dict(item.income_type_details)
+            if "status_id" in temp_item:
+                temp_item["status_details"] = Utility.model_to_dict(item.status_details)
+            users_list.append(temp_item)
 
-    response_data = {
-        "total_count":total_count,
-        "list":users_list,
-        "page":filter_data.page,
-        "per_page":filter_data.per_page
-    }
-    return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
+        response_data = {
+            "total_count":total_count,
+            "list":users_list,
+            "page":filter_data.page,
+            "per_page":filter_data.per_page
+        }
+        return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+#apply-loan
+@router.post("/apply-loan", response_description="Fetch Applications List")
+async def applications_list(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        # service_type_id:int
+        # user_id:int
+        # tenant_id:Optional[int] =1
+        tenant_id = 1
+        user_id = request.user_id
+        service_type_id = request.service_type_id
+        if auth_user["role_id"] ==1:
+            tenant_id = request.tenant_id
+        else:
+            tenant_id = auth_user["tenant_id"]
+        customer = db.query(CustomerModal).filter(CustomerModal.id==user_id,CustomerModal.tenant_id==tenant_id).first()    
+        if customer is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_FOUND, error=[], data={},code="CUSTOMER_NOT_FOUND")
+        else:
+            if customer.status_id !=3:
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
+            new_lead =  LoanapplicationModel(subscriber_id=user_id,service_type_id=service_type_id,tenant_id=tenant_id)
+            if auth_user["role_id"] ==3:
+                new_lead.salesman_id = auth_user["id"]
+            if auth_user["role_id"] ==4:
+                new_lead.agent_id = auth_user["id"]
+            db.add(new_lead)
+            db.commit()
+            if new_lead.id:
+                return Utility.json_response(status=SUCCESS, message=all_messages.LOAN_APPLICATION_CREATED, error=[], data={"new_lead":new_lead.id})
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+    
+
+                
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+    

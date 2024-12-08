@@ -79,6 +79,9 @@ LOAN_APPL_FORM_NOT_FOUND="Loan Application not Found"
 USER_INVITE="successfully Invited!"
 CONFORMATION_EXISTS ="Configuration already exists"
 CONFORMATION_ADDED ="Configuration Added  successfully!"
+CUSTOMER_NOT_FOUND="Customer not Found"
+CUSTOMER_NOT_ACTIVE="Customer is not active"
+LOAN_APPLICATION_CREATED="Loan created Successfully"
 
 
 
