@@ -1,0 +1,27 @@
+[
+	{
+		"id": 1,
+		"name": "Rentals in A/c"
+	},
+	{
+		"id": 2,
+		"name": "Rentals in cash"
+	},
+	{
+		"id": 3,
+		"name": "Incentives"
+	},
+	{
+		"id": 4,
+		"name": "Yearly Bonus"
+	},
+	{
+		"id": 5,
+		"name": "Fixed Variable"
+	},
+	{
+		"id": 6,
+		"name": "Other income"
+	}
+
+]

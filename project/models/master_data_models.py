@@ -136,6 +136,11 @@ class mdIncomeTypes(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(55) )
     lead_income_type = relationship("LoanapplicationModel", back_populates="income_type_details")
+class MdOtherIncomeTypes(BaseModel):
+    #md_other_income_types.json,MdOtherIncomeTypes
+    __tablename__ = "md_other_income_types"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(55) )
 
 #md_obligation_types.json
 class MdObligationTypes(BaseModel):
