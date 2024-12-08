@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer,INT, String, Text, DateTime, ForeignKey,Boolean
+from sqlalchemy import Column, Integer,Float,INT, String, Text, DateTime, ForeignKey,Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 #Base = declarative_base()
@@ -164,6 +164,8 @@ class MdSubscriptionPlansModel(BaseModel):
     name = Column(String(50), default='')
     status = Column(Boolean, default=True)
     description = Column(Text, default='')
+    amount =  Column(Float, default=0, comment="Amount in INR")
+    validity =  Column(Integer, default=None, comment="Validity in Days")
     subscription_plan_customers = relationship("CustomerModal", back_populates="subscription_plan_details")
     
     class Config:

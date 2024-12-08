@@ -1,19 +1,25 @@
 [
 	{
 		"id": 1,
-		"name": "Silver",
-        "desctiption":""
+		"name": "Avino",
+        "desctiption":"",
+		"amount":299,
+		"validity":90
 		
         
 	},
 	{
 		"id": 2,
-		"name": "Gold",
-        "desctiption":""
+		"name": "Avino Mini",
+        "desctiption":"",
+		"amount":599,
+		"validity":180
 	},
 	{
 		"id": 3,
-		"name": "Diamond",
-        "desctiption":""
+		"name": "Avino Max",
+        "desctiption":"",
+		"amount":999,
+		"validity":365
 	}
 ]
