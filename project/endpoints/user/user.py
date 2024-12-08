@@ -509,3 +509,102 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/applications-list", response_description="Fetch Users List")
+async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    #user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
+    #AuthHandler().user_validate(user_obj)
+    # if auth_user.get("role_id", -1) not in [1,2]:
+    #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+
+    
+    query = db.query(LoanapplicationModel).options(
+        joinedload(LoanapplicationModel.subscriber),
+        joinedload(LoanapplicationModel.detail_of_service),
+        joinedload(LoanapplicationModel.created_by_details),
+        joinedload(LoanapplicationModel.lead_sourse_details),
+        joinedload(LoanapplicationModel.profession_details),
+        joinedload(LoanapplicationModel.profession_sub_type_details),
+        joinedload(LoanapplicationModel.income_type_details),
+        joinedload(LoanapplicationModel.created_by_details),
+        joinedload(LoanapplicationModel.status_details),
+        
+    )
+
+    if filter_data.search_string:
+        search = f"%{filter_data.search_string}%"
+        query = query.filter(
+            or_(
+                LoanapplicationModel.subscriber.name.ilike(search),
+                LoanapplicationModel.subscriber.email.ilike(search),
+                
+            )
+        )
+    if filter_data.tenant_id:
+        query = query.filter(LoanapplicationModel.tenant_id.in_(filter_data.tenant_id))
+       
+    
+    if filter_data.status_ids:
+        query = query.filter(LoanapplicationModel.status_id.in_(filter_data.status_ids))
+    
+     # Total count of users matching the filters
+    
+    total_count = query.count()
+    sort_column = getattr(LoanapplicationModel, filter_data.sort_by, None)
+    if sort_column:
+        
+        if filter_data.sort_order == "desc":
+            query = query.order_by(desc(sort_column))
+        else:
+            query = query.order_by(asc(sort_column))
+    else:
+        query = query.order_by(desc("id"))
+
+    # Apply pagination
+    offset = (filter_data.page - 1) * filter_data.per_page
+    paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+    # Create a paginated response
+    users_list =[]
+    for item in paginated_query:
+        temp_item = Utility.model_to_dict(item)
+        """
+        joinedload(LoanapplicationModel.subscriber),
+        joinedload(LoanapplicationModel.detail_of_service),
+        joinedload(LoanapplicationModel.created_by_details),
+        joinedload(LoanapplicationModel.lead_sourse_details),
+        joinedload(LoanapplicationModel.profession_details),
+        joinedload(LoanapplicationModel.profession_sub_type_details),
+        joinedload(LoanapplicationModel.income_type_details),
+        joinedload(LoanapplicationModel.created_by_details),
+        joinedload(LoanapplicationModel.status_details),
+        """
+        if "subscriber_id" in temp_item and temp_item["subscriber_id"] is not None:
+            temp_item["subscriber"] = Utility.model_to_dict(item.subscriber)
+
+        if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
+            temp_item["detail_of_service"] = Utility.model_to_dict(item.detail_of_service)
+        
+        if "created_by" in temp_item and temp_item["created_by"] is not None:
+            temp_item["created_by_details"] = Utility.model_to_dict(item.created_by_details)
+
+        if "lead_sourse_id" in temp_item and temp_item["lead_sourse_id"] is not None:
+            temp_item["lead_sourse_details"] = Utility.model_to_dict(item.lead_sourse_details)
+        
+        if "profession_type_id" in temp_item and temp_item["profession_type_id"] is not None:
+            temp_item["profession_details"] = Utility.model_to_dict(item.profession_details)
+        
+        if "profession_sub_type_id" in temp_item and temp_item["profession_sub_type_id"] is not None:
+            temp_item["profession_sub_type_details"] = Utility.model_to_dict(item.profession_sub_type_details)
+        if "income_type_id" in temp_item and temp_item["income_type_id"] is not None:
+            temp_item["income_type_details"] = Utility.model_to_dict(item.income_type_details)
+        if "status_id" in temp_item:
+            temp_item["status_details"] = Utility.model_to_dict(item.status_details)
+        users_list.append(temp_item)
+
+    response_data = {
+        "total_count":total_count,
+        "list":users_list,
+        "page":filter_data.page,
+        "per_page":filter_data.per_page
+    }
+    return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
