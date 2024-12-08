@@ -1,0 +1,20 @@
+
+A) while customer enquir the tfs service :
+	1) To Customer
+	2) To Admin
+
+
+B) Signup new customer:
+	3) To Customer
+	4) To Admin
+	
+
+C)Invite Customer:
+    5) To Customer
+	
+
+C) Apply Loan:
+    7) To Customer
+	8) To Admin
+	
+	
