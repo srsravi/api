@@ -112,7 +112,7 @@ class MdLeadSources(BaseModel):
     __tablename__ = "md_lead_sources"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(55) )
-    lead_subscriber = relationship("LoanapplicationModel", back_populates="lead_sourse_details")
+    lead_customer = relationship("LoanapplicationModel", back_populates="lead_sourse_details")
     
 
 #md_profession_types

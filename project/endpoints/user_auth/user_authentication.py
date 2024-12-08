@@ -174,7 +174,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                     user_data.agent_id = user_id
 
                 if service_type_id is not None:
-                    new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                    new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                     db.add(new_lead)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
@@ -211,7 +211,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         else:
-            new_lead =  LoanapplicationModel(subscriber_id=existing_customer.id,service_type_id=service_type_id,tenant_id=tenant_id)
+            new_lead =  LoanapplicationModel(customer_id=existing_customer.id,service_type_id=service_type_id,tenant_id=tenant_id)
             db.add(new_lead)
             db.commit()
             if configuration is not None:
@@ -301,7 +301,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
@@ -452,7 +452,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
                 print("************  \n 1 \n \n \n ****************")
-                new_lead =  LoanapplicationModel(subscriber_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 print("************  \n 2 \n \n \n ****************")
                 db.add(new_lead)
                 print("************  \n 3 \n \n \n ****************")

@@ -205,7 +205,7 @@ async def update_password(request: UpdatePassword,auth_user=Depends(AuthHandler(
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 @router.post("/list", response_description="Fetch Users List")
-async def get_subscribers(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     #user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
     #AuthHandler().user_validate(user_obj)
     # if auth_user.get("role_id", -1) not in [1,2]:
@@ -346,7 +346,7 @@ async def get_benficiary( request: GetUserDetailsReq,auth_user=Depends(AuthHandl
 async def get_loan_application_details( request: getloanApplicationDetails,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
         """
-        subscriber_id -->subscriber
+        customer_id -->customer_details
         service_type_id -->detail_of_service
         lead_sourse_id --> lead_sourse_details
         profession_type_id --->profession_details
@@ -378,8 +378,8 @@ async def get_loan_application_details( request: getloanApplicationDetails,auth_
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
 
         application_data = Utility.model_to_dict(dbcursor)
-        if dbcursor.subscriber_id and dbcursor.subscriber is not None:
-            application_data["applicant_details"] = Utility.model_to_dict(dbcursor.subscriber)
+        if dbcursor.customer_id and dbcursor.customer_details is not None:
+            application_data["applicant_details"] = Utility.model_to_dict(dbcursor.customer_details)
             del application_data["applicant_details"]["password"]
 
         if dbcursor.service_type_id and dbcursor.detail_of_service is not None:
@@ -515,7 +515,7 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
     try:
     
         query = db.query(LoanapplicationModel).options(
-            joinedload(LoanapplicationModel.subscriber),
+            joinedload(LoanapplicationModel.customer_details),
             joinedload(LoanapplicationModel.detail_of_service),
             joinedload(LoanapplicationModel.created_by_details),
             joinedload(LoanapplicationModel.lead_sourse_details),
@@ -531,8 +531,8 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
             search = f"%{filter_data.search_string}%"
             query = query.filter(
                 or_(
-                    LoanapplicationModel.subscriber.name.ilike(search),
-                    LoanapplicationModel.subscriber.email.ilike(search),
+                    LoanapplicationModel.customer_details.name.ilike(search),
+                    LoanapplicationModel.customer_details.email.ilike(search),
                     
                 )
             )
@@ -564,7 +564,7 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         for item in paginated_query:
             temp_item = Utility.model_to_dict(item)
             """
-            joinedload(LoanapplicationModel.subscriber),
+            joinedload(LoanapplicationModel.customer_details),
             joinedload(LoanapplicationModel.detail_of_service),
             joinedload(LoanapplicationModel.created_by_details),
             joinedload(LoanapplicationModel.lead_sourse_details),
@@ -574,8 +574,8 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
             joinedload(LoanapplicationModel.created_by_details),
             joinedload(LoanapplicationModel.status_details),
             """
-            if "subscriber_id" in temp_item and temp_item["subscriber_id"] is not None:
-                temp_item["subscriber"] = Utility.model_to_dict(item.subscriber)
+            if "customer_id" in temp_item and temp_item["customer_id"] is not None:
+                temp_item["customer_details"] = Utility.model_to_dict(item.customer_details)
 
             if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
                 temp_item["detail_of_service"] = Utility.model_to_dict(item.detail_of_service)
@@ -630,7 +630,7 @@ async def applications_list(request: ApplyLoanSchema,auth_user=Depends(AuthHandl
         else:
             if customer.status_id !=3:
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
-            new_lead =  LoanapplicationModel(subscriber_id=user_id,service_type_id=service_type_id,tenant_id=tenant_id)
+            new_lead =  LoanapplicationModel(customer_id=user_id,service_type_id=service_type_id,tenant_id=tenant_id)
             if auth_user["role_id"] ==3:
                 new_lead.salesman_id = auth_user["id"]
             if auth_user["role_id"] ==4:

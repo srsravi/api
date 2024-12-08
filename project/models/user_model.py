@@ -106,7 +106,7 @@ class CustomerModal(BaseModel):
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     service_details = relationship("MdServiceTypes", back_populates="user_service")
 
-    loan_applications_list = relationship("LoanapplicationModel", back_populates="subscriber")
+    loan_applications_list = relationship("LoanapplicationModel", back_populates="customer_details")
     created_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
     created_by_details = relationship("AdminUser", back_populates="my_users")
     accepted_terms = Column(Boolean, default=False)
@@ -123,8 +123,8 @@ class CustomerModal(BaseModel):
 class LoanapplicationModel(BaseModel):
     __tablename__ = "application_details"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    subscriber_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
-    subscriber = relationship("CustomerModal", back_populates="loan_applications_list")
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
+    customer_details = relationship("CustomerModal", back_populates="loan_applications_list")
     tenant_id= Column(Integer, default=None,)
     service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
     detail_of_service = relationship("MdServiceTypes", back_populates="service_lonas_list")
@@ -132,7 +132,7 @@ class LoanapplicationModel(BaseModel):
     application_form_id = Column(String(20), default=None,nullable=True,)
     loanAmount = Column(String(50), nullable=True, default="0")
     lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"),nullable=True, default=None, unique=False, index=True)
-    lead_sourse_details = relationship("MdLeadSources", back_populates="lead_subscriber")
+    lead_sourse_details = relationship("MdLeadSources", back_populates="lead_customer")
     profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"),nullable=True, default=None, unique=False)
     profession_details = relationship("MdProfessionTypes", back_populates="lead_profession")
     
