@@ -166,8 +166,8 @@ class MdSubscriptionPlansModel(BaseModel):
     description = Column(Text, default='')
     amount =  Column(Float, default=0, comment="Amount in INR")
     validity =  Column(Integer, default=None, comment="Validity in Days")
-    subscription_plan_customers = relationship("CustomerModal", back_populates="subscription_plan_details")
-    
+    subscription_plan_customers = relationship("CustomerModal", back_populates="current_plan_details")
+    subscriptions = relationship('SubscriptionModel', back_populates='plan')
     class Config:
         from_attributes = True
         str_strip_whitespace = True

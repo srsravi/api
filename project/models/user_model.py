@@ -112,14 +112,38 @@ class CustomerModal(BaseModel):
     accepted_terms = Column(Boolean, default=False)
 
     #md_subscription_plans MdSubscriptionPlansModel
-    md_subscription_plan_id = Column(Integer, ForeignKey("md_subscription_plans.id"), nullable=True, default=None )
-    subscription_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
-    subscription_history = Column(Text, default=None, comment="History of subscription")
-    
+    current_plan_id = Column(Integer, ForeignKey("md_subscription_plans.id"), nullable=True, default=None )
+    current_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
+    subscription = relationship('SubscriptionModel', back_populates='customer')
     class Config:
         from_attributes = True
         str_strip_whitespace = True
 
+
+class SubscriptionModel(BaseModel):
+    __tablename__ = 'subscriptions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'),unique=False)
+    plan_id = Column(Integer, ForeignKey('md_subscription_plans.id'))
+    start_date = Column(DateTime, default=datetime.now(timezone.utc))
+    end_date = Column(DateTime)
+    payment_status = Column(String(100), default="Pending")  # Payment status (Pending, Success, Failed)
+    payment_amount = Column(Float)
+    razorpay_order_id = Column(String(100), index=True)  # Razorpay order ID
+    razorpay_payment_id = Column(String(100), index=True)  # Razorpay payment ID
+    status = Column(Boolean, default=False, comment="Is status ==True plan is active, if False == plan inactive")
+
+    customer = relationship('CustomerModal', back_populates='subscription')
+    plan = relationship('MdSubscriptionPlansModel', back_populates='subscriptions')
+    
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Validate payment amount when initializing a new subscription
+        if self.payment_amount <= 0:
+            raise ValueError('Payment amount must be positive')
+        
 class LoanapplicationModel(BaseModel):
     __tablename__ = "application_details"
     id = Column(Integer, primary_key=True, autoincrement=True)

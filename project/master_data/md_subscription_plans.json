@@ -3,7 +3,7 @@
 		"id": 1,
 		"name": "Avino",
         "desctiption":"",
-		"amount":299,
+		"amount":99,
 		"validity":90
 		
         
@@ -12,14 +12,14 @@
 		"id": 2,
 		"name": "Avino Mini",
         "desctiption":"",
-		"amount":599,
+		"amount":299,
 		"validity":180
 	},
 	{
 		"id": 3,
 		"name": "Avino Max",
         "desctiption":"",
-		"amount":999,
+		"amount":599,
 		"validity":365
 	}
 ]
