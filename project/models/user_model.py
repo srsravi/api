@@ -126,17 +126,17 @@ class SubscriptionModel(BaseModel):
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey('customers.id'),unique=False)
     plan_id = Column(Integer, ForeignKey('md_subscription_plans.id'))
-    start_date = Column(DateTime, default=datetime.now(timezone.utc))
-    end_date = Column(DateTime)
+    start_date = Column(DateTime, nullable=True, default=datetime.now(timezone.utc))
+    end_date = Column(DateTime,nullable=True,)
     payment_status = Column(String(100), default="Pending")  # Payment status (Pending, Success, Failed)
     payment_amount = Column(Float)
-    razorpay_order_id = Column(String(100), index=True)  # Razorpay order ID
-    razorpay_payment_id = Column(String(100), index=True)  # Razorpay payment ID
+    razorpay_order_id = Column(String(100), index=True,default=None)  # Razorpay order ID
+    razorpay_payment_id = Column(String(100), index=True,default=None)  # Razorpay payment ID
     status = Column(Boolean, default=False, comment="Is status ==True plan is active, if False == plan inactive")
 
     customer = relationship('CustomerModal', back_populates='subscription')
     plan = relationship('MdSubscriptionPlansModel', back_populates='subscriptions')
-    
+    tenant_id = Column(Integer, default=1)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

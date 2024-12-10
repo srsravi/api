@@ -47,6 +47,8 @@ class EnquiryBecomeCustomer(BaseModel):
     status_id:int
     followupdate:Optional[date] = None
     description:str
+    current_plan_id:Optional[int] = None
+
 
     #{"enquiry_id":1,
     # "tenant_id":1,

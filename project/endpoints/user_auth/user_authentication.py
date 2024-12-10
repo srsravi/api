@@ -1,8 +1,8 @@
 from datetime import datetime, timezone,timedelta
 from sqlalchemy import and_
 from datetime import datetime
-from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel
-from ...models.master_data_models import ServiceConfigurationModel
+from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel
+from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptionPlansModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
@@ -118,6 +118,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         service_type_id =None
         status_id = None
         followupdate = None
+        current_plan_id = None
         description = ""
         if request.tenant_id:
             tenant_id = request.tenant_id
@@ -132,7 +133,29 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         if request.description:
             description = request.description
         
+        plan_details =None
         enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id).first()
+        if status_id ==2:
+            if service_type_id is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Service Type is required!", error=[], data={})
+
+            if service_type_id ==1:
+                if request.current_plan_id is not None:
+                    current_plan_id = request.current_plan_id
+                if current_plan_id is None:
+                    return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is required!", error=[], data={})
+                else:
+                    plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==current_plan_id).first()
+                    if plan_details is None:
+                        return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
+
+
+        else:
+            if followupdate is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Followup date is required", error=[], data={})
+
+
+        
         if enquiry_data is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
         
@@ -172,12 +195,41 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                     user_data.salesman_id = user_id
                 if role_id == 4:
                     user_data.agent_id = user_id
-
+                
                 if service_type_id is not None:
-                    new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
-                    db.add(new_lead)
+                    if service_type_id ==1:                        
+                        # this is subscription Functionality
+                        razorpay_order_id = None, ##we need to impliment
+                        razorpay_payment_id = None
+                        new_subscription = SubscriptionModel(
+                        customer_id = user_data.id ,
+                        plan_id =current_plan_id,
+                        start_date = datetime.now(timezone.utc),
+                        end_date = None,
+                        payment_status = "Pending",  # Payment status (Pending, Success, Failed)
+                        payment_amount = plan_details.amount,
+                        razorpay_order_id = razorpay_order_id, ##we need to impliment
+                        razorpay_payment_id = razorpay_payment_id,
+                        tenant_id = user_data.tenant_id ##we need to impliment
+                        
+                        )
+                        db.add(new_subscription)
+                        db.commit()
+                        if new_subscription.id:
+                            user_data.current_plan_id = current_plan_id
+                            db.commit()
+                            return Utility.json_response(status=SUCCESS, message="Successfully subscription added", error=[], data={"razorpay_order_id":razorpay_order_id,"razorpay_payment_id":razorpay_payment_id},code="REDIRECT_TO_PAYMENT_GATEWAY")
+
+                        else:
+                            print("TEST-4")
+                            db.rollback()
+                            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+                    else:
+                        new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                        db.add(new_lead)
                 if configuration is not None:
-                    new_lead.salesman_id = configuration.user_id
+                    if status_id ==2 and  service_type_id !=1 and new_lead is not None:
+                        new_lead.salesman_id = configuration.user_id
                     user_data.salesman_id = configuration.user_id
                     
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
@@ -204,21 +256,48 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
             
                 background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-                rowData["loanApplicationId"] = new_lead.id
+                if new_lead.id:
+                    rowData["loanApplicationId"] = new_lead.id
                 return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
             else:
                 
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         else:
+            if service_type_id ==1:                        
+                        # this is subscription Functionality
+                        razorpay_order_id = None, ##we need to impliment
+                        razorpay_payment_id = None
+                        new_subscription = SubscriptionModel(
+                        customer_id = existing_customer.id ,
+                        plan_id =current_plan_id,
+                        start_date = datetime.now(timezone.utc),
+                        end_date = None,
+                        payment_status = "Pending",  # Payment status (Pending, Success, Failed)
+                        payment_amount = plan_details.amount,
+                        razorpay_order_id = razorpay_order_id, ##we need to impliment
+                        razorpay_payment_id = razorpay_payment_id, ##we need to impliment
+                        tenant_id = existing_customer.tenant_id
+                        
+                        )
+                        db.add(new_subscription)
+                        db.commit()
+                        if new_subscription.id:
+                            existing_customer.current_plan_id = current_plan_id
+                            db.commit()
+                            return Utility.json_response(status=SUCCESS, message="Successfully subscription added", error=[], data={"razorpay_order_id":razorpay_order_id,"razorpay_payment_id":razorpay_payment_id},code="REDIRECT_TO_PAYMENT_GATEWAY")
+                        else:
+                            db.rollback()
+                            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
             new_lead =  LoanapplicationModel(customer_id=existing_customer.id,service_type_id=service_type_id,tenant_id=tenant_id)
             db.add(new_lead)
             db.commit()
             if configuration is not None:
-                new_lead.salesman_id = configuration.user_id
+                
                 existing_customer.salesman_id = configuration.user_id
             if new_lead.id:
                 res_data = {"loanApplicationId":None}
+                new_lead.salesman_id = configuration.user_id
                 res_data["loanApplicationId"] = new_lead.id
                 return Utility.json_response(status=SUCCESS, message="Lead Added successfully", error=[],data=res_data,code="LEAD_CREATED_SUCCESS")
             else:
