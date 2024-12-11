@@ -713,7 +713,7 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
 
 #apply-loan
 @router.post("/apply-loan", response_description="Fetch Applications List")
-async def applications_list(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+async def apply_loan(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
         # service_type_id:int
         # user_id:int
@@ -729,8 +729,9 @@ async def applications_list(request: ApplyLoanSchema,auth_user=Depends(AuthHandl
         if customer is None:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_FOUND, error=[], data={},code="CUSTOMER_NOT_FOUND")
         else:
-            if customer.status_id !=3:
-                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
+            # if customer.status_id !=3:
+            #     return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
+            
             new_lead =  LoanapplicationModel(customer_id=user_id,service_type_id=service_type_id,tenant_id=tenant_id)
             if auth_user["role_id"] ==3:
                 new_lead.salesman_id = auth_user["id"]
