@@ -1,3 +1,4 @@
+USER_ALREADY_EXISTS = "User already exists"
 SIGNUP_MAIL_SUBJECT ="Successful account creation"
 SIGNUP_PROCESS_PENDING ="Your Signup Process is pending"
 PENDING_EMAIL_VERIFICATION = "Email Verification is not completed"

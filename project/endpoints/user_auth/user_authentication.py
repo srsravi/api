@@ -6,7 +6,7 @@ from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptio
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
-from ...schemas.register import EnquiryRequestSchema,EnquiryRequestOtpSchema,EnquiryBecomeCustomer
+from ...schemas.register import EnquiryRequestSchema,EnquiryRequestOtpSchema,EnquiryBecomeCustomer,createSubscriberSchema
 import re
 from ...schemas.login import Login
 from ...constant import messages as all_messages
@@ -1034,6 +1034,156 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/add-subscriber",  response_description="enquirer to make as customer")
+async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        """email: "",
+        first_name: "",
+        last_name: "",
+        date_of_birth:"",
+        mobile_no: "",
+        aternate_mobile_no:"",
+        pan_card_number:"",
+        aadhaar_card_number:"",
+        nominee:"",
+        relation_with_nominee:''"""
+        tenant_id = 1
+        email =  request.email
+        first_name = request.first_name
+        last_name = request.last_name
+        date_of_birth = request.date_of_birth
+        mobile_no = request.mobile_no
+        alternate_mobile_no = request.alternate_mobile_no
+        pan_card_number = request.pan_card_number
+        aadhaar_card_number = request.aadhaar_card_number
+        nominee = request.nominee
+        relation_with_nominee = request.relation_with_nominee
+        service_type_id =None
+        status_id = None
+        current_plan_id = None
+        if request.tenant_id:
+            tenant_id = request.tenant_id
+        role_id = auth_user["role_id"]
+        user_id = auth_user["id"]
+        if request.service_type_id is not None:
+            service_type_id = request.service_type_id
+        
+        
+        
+        plan_details =None
+        if service_type_id is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Service Type is required!", error=[], data={})
+
+        if service_type_id ==1:
+            if request.current_plan_id is not None:
+                current_plan_id = request.current_plan_id
+            if current_plan_id is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is required!", error=[], data={})
+            else:
+                plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==current_plan_id).first()
+                if plan_details is None:
+                    return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
+
+
+        
+        existing_customer = db.query(CustomerModal).filter(CustomerModal.email == email).first()
+        configuration =None
+        configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
+        if existing_customer is None:            
+            user_data = CustomerModal(                                    
+                                      first_name=first_name,
+                                      last_name=last_name,
+                                      name= f"{first_name} last_name",
+                                      role_id =5,
+                                      status_id=2,
+                                      email=email,
+                                      mobile_no=mobile_no,
+                                      date_of_birth = date_of_birth,
+                                      alternate_mobile_no = alternate_mobile_no,
+                                      pan_card_number = pan_card_number,
+                                      aadhaar_card_number = aadhaar_card_number,
+                                      nominee = nominee,
+                                      relation_with_nominee = relation_with_nominee,
+                                      password=str(Utility.uuid()),
+                                      tenant_id=tenant_id,
+                                      service_type_id=1
+                                      )
+            
+            mail_data = {"body":"Welcome to TFS"}
+            otp =str(Utility.generate_otp())
+            category ="SIGNUP_CUSTOMER"
+            db.add(user_data)
+            db.flush()
+            db.commit()
+            if user_data.id:
+                if role_id == 3:
+                    user_data.salesman_id = user_id
+                if role_id == 4:
+                    user_data.agent_id = user_id
+                
+                                           
+                # this is subscription Functionality
+                razorpay_order_id = None, ##we need to impliment
+                razorpay_payment_id = None
+                new_subscription = SubscriptionModel(
+                customer_id = user_data.id ,
+                plan_id =current_plan_id,
+                start_date = datetime.now(timezone.utc),
+                end_date = None,
+                payment_status = "Pending",  # Payment status (Pending, Success, Failed)
+                payment_amount = plan_details.amount,
+                razorpay_order_id = razorpay_order_id, ##we need to impliment
+                razorpay_payment_id = razorpay_payment_id,
+                tenant_id = user_data.tenant_id ##we need to impliment
+                
+                )
+                db.add(new_subscription)
+                db.commit()
+                if new_subscription.id:
+                    user_data.current_plan_id = current_plan_id
+                    db.commit()
+                    if configuration is not None:                    
+                        user_data.salesman_id = configuration.user_id
+                        
+                    user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+                    udata =  Utility.model_to_dict(user_data)
+                    rowData = {}
+                    rowData['user_id'] = udata["id"]
+                    rowData['first_name'] = udata.get("first_name","")
+                    rowData['last_name'] = udata.get("last_name","")
+                    rowData['mobile_no'] = udata.get("mobile_no",'')
+                    rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                    
+                    mail_data = {}
+                    mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                    mail_data["otp"] = otp
+                    user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                    token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                    user_dict["token"]=token
+                    user_dict["ref_id"]=udata["id"]
+                    db.add(tokensModel(**user_dict))
+                    db.query(CustomerModal).filter(CustomerModal.email == email).update({"status_id": 2}, synchronize_session=False)
+                    db.commit()
+                    link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
+                
+                    background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+                    if user_data.id:
+                        rowData["user_id"] = user_data.id
+                    return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
+                else:
+                    return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+            else:
+                
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+        else:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_ALREADY_EXISTS, error=[], data={})
     except Exception as E:
         print(E)
         db.rollback()

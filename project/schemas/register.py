@@ -520,5 +520,74 @@ class addAgentUserSchema(BaseModel):
         return v
 
 
+class createSubscriberSchema(BaseModel):
+    """ email: "",
+        first_name: "",
+        last_name: "",
+        date_of_birth:"",
+        mobile_no: "",
+        aternate_mobile_no:"",
+        pan_card_number:"",
+        aadhaar_card_number:"",
+        nominee:"",
+        relation_with_nominee:'',
+       
+        """
+    email: EmailStr = Field(..., description="The email address of the user.")
+    first_name: str
+    last_name: str
+    date_of_birth: date = Field(..., description="Must be at least 18 years old.And format should be YYYY-MM-DD")
+    mobile_no: str = Field(..., description="The mobile phone number of the user, including the country code.")
+    alternate_mobile_no:str = Field(..., description="The mobile phone number of the user, including the country code.")
+    pan_card_number: Optional[str]=''
+    aadhaar_card_number :Optional[str]=''
+    nominee:Optional[str]=''
+    relation_with_nominee:Optional[str]=''
+    aadhaar_card:Optional[str]=''
+    canceled_cheque:str = Field(..., description="")
+    selfie:Optional[str]= " "   
+    reference_id: Optional[str]=' '
+    service_type_id: Optional[int] = 1
+    current_plan_id:int
+    tenant_id:Optional[int] =1
+    @validator('email', always=True)
+    def check_email(cls, v):
+        if v is None:
+            raise ValueError('User email address is required and cannot be None.')
+        return v
+    
+    @field_validator('first_name', mode='before')
+    def validate_first_name(cls, v, info):
+        v = v.strip()
+        if not re.match(r'^[A-Za-z]+$', v):
+            raise ValueError('First name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
+        return v
+    
+    @field_validator('last_name', mode='before')
+    def validate_last_name(cls, v, info):
+        v = v.strip()
+        if not re.match(r'^[A-Za-z]+$', v):
+            raise ValueError('Last name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
+        return v
+
+    @field_validator('mobile_no', mode='before')
+    def validate_mobile_no(cls, v, info):
+        try:
+            phone_number = phonenumbers.parse(v)
+            if not is_valid_number(phone_number):
+                raise ValueError('Invalid phone number.')
+        except NumberParseException:
+            raise ValueError('Invalid phone number format.')
+        return v
+    @field_validator('date_of_birth', mode='before')
+    def validate_date_of_birth(cls, v, info):
+        # Ensure v is a date object
+        if isinstance(v, str):
+            v = date.fromisoformat(v)  # Convert from string to date if needed
+        today = date.today()
+        age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
+        if age < 18:
+            raise ValueError('You must be at least 18 years old. And format should be YYYY-MM-DD')
+        return v
     
     
