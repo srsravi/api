@@ -1098,7 +1098,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
             user_data = CustomerModal(                                    
                                       first_name=first_name,
                                       last_name=last_name,
-                                      name= f"{first_name} last_name",
+                                      name= f"{first_name} {last_name}",
                                       role_id =5,
                                       status_id=2,
                                       email=email,
