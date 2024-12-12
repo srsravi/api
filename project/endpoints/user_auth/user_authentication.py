@@ -6,7 +6,7 @@ from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptio
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.register import createCustomerSchema, SignupOtp,ForgotPassword,CompleteSignup,VerifyAccount,resetPassword
-from ...schemas.register import EnquiryRequestSchema,EnquiryRequestOtpSchema,EnquiryBecomeCustomer,createSubscriberSchema
+from ...schemas.register import EnquiryRequestSchema,EnquiryRequestOtpSchema,EnquiryBecomeCustomer,createSubscriberSchema,AddPlanToUserSchema
 import re
 from ...schemas.login import Login
 from ...constant import messages as all_messages
@@ -1185,4 +1185,63 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+@router.post("/add-plan-touser",  response_description="enquirer to make as customer")
+async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        tenant_id = 1
+        current_plan_id = None
+        customer_id = None
+        if request.tenant_id:
+            tenant_id = request.tenant_id
+        if request.current_plan_id is not None:
+            current_plan_id = request.current_plan_id
+        if request.customer_id is not None:
+            customer_id = request.customer_id
+        if auth_user["role_id"] ==5:
+            customer_id = auth_user["id"]
+
+        plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==current_plan_id).first()
+        if plan_details is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
+
+        user_data = db.query(CustomerModal).filter(CustomerModal.id == customer_id).first()
+        if user_data is not None:
+            razorpay_order_id = None, ##we need to impliment
+            razorpay_payment_id = None
+            new_subscription = SubscriptionModel(
+            customer_id = user_data.id ,
+            plan_id =current_plan_id,
+            start_date = datetime.now(timezone.utc),
+            end_date = None,
+            payment_status = "Pending",  # Payment status (Pending, Success, Failed)
+            payment_amount = plan_details.amount,
+            razorpay_order_id = razorpay_order_id, ##we need to impliment
+            razorpay_payment_id = razorpay_payment_id,
+            tenant_id = user_data.tenant_id ##we need to impliment
+            
+            )
+            db.add(new_subscription)
+            db.commit()
+            if new_subscription.id:
+                rowData = {"subscribtion_id":new_subscription.id}
+                user_data.current_plan_id = current_plan_id
+                link = "Payment Link"
+                planDetails = Utility.model_to_dict(plan_details)
+                mail_data ={}
+                mail_data["name"]=user_data.name
+                mail_data["payment_link"] =link
+                mail_data["plan_name"] =planDetails["name"]
+                if auth_user["role_id"] ==5:
+                    background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription", template='customrer_payment_link.html',data=mail_data)
+                
+                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="subscription")
+            else:
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+        else:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_ALREADY_EXISTS, error=[], data={})
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 

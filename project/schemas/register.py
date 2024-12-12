@@ -589,5 +589,9 @@ class createSubscriberSchema(BaseModel):
         if age < 18:
             raise ValueError('You must be at least 18 years old. And format should be YYYY-MM-DD')
         return v
-    
+
+class AddPlanToUserSchema(BaseModel):
+    tenant_id:Optional[int]= 1
+    current_plan_id:int
+    customer_id:int
     

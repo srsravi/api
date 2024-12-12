@@ -823,3 +823,4 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
