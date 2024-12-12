@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks
 from fastapi_pagination import Params,paginate 
 from sqlalchemy.orm import  joinedload
 from ...library.webSocketConnectionManager import manager
-from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel
+from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel
 from typing import Dict
 
 # APIRouter creates path operations for product module
@@ -627,6 +627,9 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
             joinedload(LoanapplicationModel.status_details),
             
         )
+        if(auth_user["role_id"] ==5):
+            query = query.filter(LoanapplicationModel.customer_id==auth_user["id"])
+        
 
         if filter_data.search_string:
             search = f"%{filter_data.search_string}%"
@@ -751,4 +754,72 @@ async def apply_loan(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().au
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/user-subscriptions-list", response_description="Fetch Applications List")
+async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
     
+        query = db.query(SubscriptionModel).options(
+            joinedload(SubscriptionModel.customer),
+            joinedload(SubscriptionModel.plan),
+            
+            
+        )
+        if(auth_user["role_id"] ==5):
+            query = query.filter(SubscriptionModel.customer_id==auth_user["id"])
+        
+
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter(
+                or_(
+                    SubscriptionModel.customer.name.ilike(search),
+                    SubscriptionModel.customer.email.ilike(search),
+                    
+                )
+            )
+        if filter_data.tenant_id:
+            query = query.filter(SubscriptionModel.tenant_id.in_(filter_data.tenant_id))
+        
+        
+        
+        # Total count of users matching the filters
+        
+        total_count = query.count()
+        sort_column = getattr(SubscriptionModel, filter_data.sort_by, None)
+        if sort_column:
+            
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
+            else:
+                query = query.order_by(asc(sort_column))
+        else:
+            query = query.order_by(desc("id"))
+
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        # Create a paginated response
+        users_list =[]
+        for item in paginated_query:
+            temp_item = Utility.model_to_dict(item)
+           
+            if "customer_id" in temp_item and temp_item["customer_id"] is not None:
+                temp_item["customer_details"] = Utility.model_to_dict(item.customer)
+            if "plan_id" in temp_item and temp_item["plan_id"] is not None:
+                temp_item["plan_details"] = Utility.model_to_dict(item.plan)
+
+            
+            users_list.append(temp_item)
+
+        response_data = {
+            "total_count":total_count,
+            "list":users_list,
+            "page":filter_data.page,
+            "per_page":filter_data.per_page
+        }
+        return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})

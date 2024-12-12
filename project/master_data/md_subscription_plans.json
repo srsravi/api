@@ -1,7 +1,7 @@
 [
 	{
 		"id": 1,
-		"name": "Avino",
+		"name": "Avinya",
         "desctiption":"",
 		"amount":99,
 		"validity":90
@@ -10,14 +10,14 @@
 	},
 	{
 		"id": 2,
-		"name": "Avino Mini",
+		"name": "Avinya Mini",
         "desctiption":"",
 		"amount":299,
 		"validity":180
 	},
 	{
 		"id": 3,
-		"name": "Avino Max",
+		"name": "Avinya Max",
         "desctiption":"",
 		"amount":599,
 		"validity":365

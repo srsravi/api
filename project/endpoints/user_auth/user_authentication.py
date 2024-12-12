@@ -149,17 +149,15 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                     if plan_details is None:
                         return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
 
-
         else:
             if followupdate is None:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Followup date is required", error=[], data={})
-
-
-        
+ 
         if enquiry_data is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
         
         enquiry_data.status_id = status_id
+        #7827015628
         enquiry_data.followupdate =followupdate
         enquiry_data.description = description
         enquiry_data.service_type_id = service_type_id
@@ -217,11 +215,21 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                         db.commit()
                         if new_subscription.id:
                             user_data.current_plan_id = current_plan_id
+                            user_data.status_id = 2
+                            user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+                            user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp}
+                            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                            user_dict["token"]=token
+                            user_dict["ref_id"]=user_data.id
+                            db.add(tokensModel(**user_dict))
+                            #db.query(CustomerModal).filter(CustomerModal.email == user_data.email).update({"status_id": 2}, synchronize_session=False)
+                            db.commit()
+                            link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
+                            background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
                             db.commit()
                             return Utility.json_response(status=SUCCESS, message="Successfully subscription added", error=[], data={"razorpay_order_id":razorpay_order_id,"razorpay_payment_id":razorpay_payment_id},code="REDIRECT_TO_PAYMENT_GATEWAY")
 
                         else:
-                            print("TEST-4")
                             db.rollback()
                             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
                     else:
@@ -254,7 +262,6 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 db.query(CustomerModal).filter(CustomerModal.email == enquiry_data.email).update({"status_id": 2}, synchronize_session=False)
                 db.commit()
                 link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
-            
                 background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
                 if new_lead.id:
                     rowData["loanApplicationId"] = new_lead.id
@@ -304,7 +311,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 db.rollback()
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
     except Exception as E:
-        print(E)
+        #print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1042,16 +1049,6 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
 @router.post("/add-subscriber",  response_description="enquirer to make as customer")
 async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
-        """email: "",
-        first_name: "",
-        last_name: "",
-        date_of_birth:"",
-        mobile_no: "",
-        aternate_mobile_no:"",
-        pan_card_number:"",
-        aadhaar_card_number:"",
-        nominee:"",
-        relation_with_nominee:''"""
         tenant_id = 1
         email =  request.email
         first_name = request.first_name
@@ -1064,7 +1061,6 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
         nominee = request.nominee
         relation_with_nominee = request.relation_with_nominee
         service_type_id =None
-        status_id = None
         current_plan_id = None
         if request.tenant_id:
             tenant_id = request.tenant_id
@@ -1170,8 +1166,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                     db.query(CustomerModal).filter(CustomerModal.email == email).update({"status_id": 2}, synchronize_session=False)
                     db.commit()
                     link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
-                
                     background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+                    
                     if user_data.id:
                         rowData["user_id"] = user_data.id
                     return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
