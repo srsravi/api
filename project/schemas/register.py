@@ -273,6 +273,7 @@ class SignupOtp(BaseModel):
 
 class ForgotPassword(BaseModel):
     email: EmailStr = Field(..., description="The email address of the user.")
+    customer:Optional[int] =0
     #date_of_birth: date = Field(..., description="Must be at least 18 years old. And format should be YYYY-MM-DD")
 
     # @field_validator('date_of_birth', mode='before')
@@ -299,6 +300,7 @@ class resetPassword(BaseModel):
     user_id: int
     password: str
     confirm_password: str
+    customer:Optional[int] =0
     #otp: int
     token:str
 
@@ -338,6 +340,7 @@ class UpdateAdminPassword(BaseModel):
     old_password: str
     password: str
     confirm_password: str
+    customer:Optional[int] =0
     
     @field_validator('user_id', mode='before')
     def check_user_id(cls, v, info):

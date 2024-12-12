@@ -16,7 +16,7 @@ import os
 import json
 from pathlib import Path
 from ...models.user_model import TenantModel
-
+from ...models.user_model import CustomerModal
 from...models.admin_configuration_model import tokensModel
 
 from ...schemas.transaction import CreateCharges,EditCharges, ChargesListReqSchema,UpdateStatusSchema
@@ -256,8 +256,17 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         user_id = request.user_id
         token = str(request.token)
         password =  request.password
-        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        category ="ADMIN_FORGOT_PASSWORD"
+        customer =0
+        if request.customer:
+            customer = request.customer
         
+        query = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        if customer>=1:
+            category ="CUSTOMER_FORGOT_PASSWORD"
+            query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
+
+        user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         else:
@@ -289,6 +298,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
             background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
             #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+            
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
     except Exception as E:
@@ -441,9 +451,17 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
     try:
         
         email = request.email
+        customer = 0
+        if request.customer:
+            customer = request.customer
         #date_of_birth = request.date_of_birth
-        user_obj = db.query(AdminUser).filter(AdminUser.email == email).first()
-        
+        query = db.query(AdminUser).filter(AdminUser.email == email)
+        category ="ADMIN_FORGOT_PASSWORD"
+        if customer>=1:
+            category ="CUSTOMER_FORGOT_PASSWORD"
+            query = db.query(CustomerModal).filter(CustomerModal.email == email)
+
+        user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         else:
@@ -467,14 +485,13 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 rowData["user_id"] = user_obj.id
                 rowData['name'] = f"""{user_obj.name}"""
                 
-                category ="ADMIN_FORGOT_PASSWORD"
                 Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
                 user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
                 token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
                 user_dict["token"]=token
                 user_dict["ref_id"]=user_obj.id
                 db.add(tokensModel(**user_dict))
-                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}&customer={customer}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
                 db.commit()
 
                 background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
@@ -506,7 +523,15 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
 
         
         email = request.email
-        user_obj = db.query(AdminUser).filter(AdminUser.email == email).first()
+        customer = 0
+        if request.customer:
+            customer = request.customer
+        category ="ADMIN_FORGOT_PASSWORD"
+        query = db.query(AdminUser).filter(AdminUser.email == email)
+        if customer>=1:
+            category ="CUSTOMER_FORGOT_PASSWORD"
+            query = db.query(CustomerModal).filter(CustomerModal.email == email)
+        user_obj = query.first()
         if auth_user["role_id"]==2:
             if user_obj.tenant_id != auth_user["tenant_id"]:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
@@ -534,14 +559,14 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 rowData["user_id"] = user_obj.id
                 rowData['name'] = f"""{user_obj.name}"""
                 
-                category ="ADMIN_FORGOT_PASSWORD"
+                
                 Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
                 user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
                 token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
                 user_dict["token"]=token
                 user_dict["ref_id"]=user_obj.id
                 db.add(tokensModel(**user_dict))
-                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                rowData["reset_link"] =  f'''{WEB_URL}set-password?token={token}&user_id={user_obj.id}&customer={customer}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
                 db.commit()
 
                 background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
@@ -570,7 +595,15 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
         user_id = request.user_id
         old_password=request.old_password
         password =  request.password
-        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        customer = 0
+        if request.customer:
+            customer = request.customer
+        query = db.query(AdminUser).filter(AdminUser.id == user_id)
+        category ="ADMIN_FORGOT_PASSWORD"
+        if customer>=1:
+            category ="CUSTOMER_FORGOT_PASSWORD"
+            query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
+        user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         valid=AuthHandler().verify_password(old_password,user_obj.password)
@@ -580,8 +613,8 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
         db.commit()
         rowData = {}                
         rowData["user_id"] = user_obj.id
-        rowData['name'] = user_obj.user_name
-        background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
+        rowData['name'] = user_obj.name
+        #background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
         db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
         return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
     except Exception as E:

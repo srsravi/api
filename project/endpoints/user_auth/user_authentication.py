@@ -1006,11 +1006,17 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         user_id = request.user_id
         token = str(request.token)
         password =  request.password
-        user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
-        
+        customer = 0
+        if request.customer:
+            customer = request.customer
+        query = db.query(AdminUser).filter(AdminUser.id == user_id)
+        if customer>=1:
+            query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
+        user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         else:
+           
             if user_obj.status_id == 4:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
             elif user_obj.status_id == 5:
@@ -1020,12 +1026,9 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             
             if token_data is None:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
-            
             tokendata = AuthHandler().decode_otp_token(token_data.token)
-            
             if tokendata is None :
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
-            
             user_obj.token = ''
             user_obj.otp = ''
             user_obj.password =AuthHandler().get_password_hash(password)
