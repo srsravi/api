@@ -17,6 +17,14 @@ from time import time
 from typing import Dict
 from collections import defaultdict
 
+import pkgutil
+import sys
+import importlib
+
+# Workaround for Python 3.12 where 'ImpImporter' is removed
+if not hasattr(pkgutil, 'ImpImporter'):
+    sys.modules['pkgutil'].ImpImporter = importlib.machinery.FileFinder
+
 # This way all the tables can be created in database but cannot be updated for that use alembic migrations
 # user.Base.metadata.create_all(bind=engine)
 # Settings

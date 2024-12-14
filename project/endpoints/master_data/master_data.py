@@ -32,6 +32,8 @@ from ...constant import messages as all_messages
 from ...library.mfiles import login_user_for_mfiles,get_currency,save_file_in_mfiles,download_files_from_mfiles_to_desired_folder
 from fastapi import WebSocket, WebSocketDisconnect
 from ...library.webSocketConnectionManager import manager
+from fastapi import  Request, HTTPException
+import razorpay
 
 router = APIRouter(
     prefix="/masterdata",
@@ -429,6 +431,42 @@ async def upload_file(request:ConfigurationListSchema,auth_user=Depends(AuthHand
     except Exception as E:
         print(E)        
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
+
+razorpay_client = razorpay.Client(auth=("your_key_id", "your_key_secret"))
+@router.post("/payment-webhook")
+async def payment_webhook(request: Request):
+    webhook_data = await request.body()
+    signature = request.headers.get("X-Razorpay-Signature")
+
+    # Verify the webhook signature
+    try:
+        razorpay_client.utility.verify_webhook_signature(webhook_data, signature, "your_webhook_secret")
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # Parse the event data
+    data = json.loads(webhook_data)
+    event = data['event']
+    payload = data['payload']['payment']
+    print(payload)
+    if event == "payment.captured":
+        # Handle success case (successful payment)
+        payment_id = payload['id']
+        order_id = payload['order_id']
+        # Redirect user or update your database
+        print(f"Payment Success! Payment ID: {payment_id}, Order ID: {order_id}")
+        return {"message": "Payment Success", "payment_id": payment_id, "order_id": order_id}
+    
+    elif event == "payment.failed":
+        # Handle failure case (failed payment)
+        payment_id = payload['id']
+        order_id = payload['order_id']
+        # Handle failure
+        print(f"Payment Failed! Payment ID: {payment_id}, Order ID: {order_id}")
+        return {"message": "Payment Failed", "payment_id": payment_id, "order_id": order_id}
+
+    return {"message": "OK"}
+
 
 
 

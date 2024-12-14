@@ -7,9 +7,51 @@ from sqlalchemy import desc, asc
 from typing import List, Tuple
 import string
 from ..models.admin_configuration_model import tokensModel
-
+import razorpay
+from datetime import datetime, timedelta
+razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 
 class Utility:
+
+    @staticmethod
+    def create_payment_link():
+        
+        try:
+            # Calculate expiration time for 24 hours from now
+            expire_time = datetime.now() + timedelta(hours=24)
+            expire_by = int(expire_time.timestamp())  # Convert to Unix timestamp
+            amount =1
+            order_data = {
+                "amount": int(amount * 100),  # Amount in paise (smallest unit)
+                "currency": "INR",
+                "receipt": "order_receipt_12345",  # Custom receipt number (optional)
+                "payment_capture": 1,  # Set to 1 to capture payment immediately
+            }
+
+            
+          
+
+            order = razorpay_client.order.create(data=order_data)
+            razorpay_order_id = order['id']  # Retrieve the order ID
+            payment_link_data = {
+                "amount": int( amount* 100),  # Amount in paise (smallest unit)
+                "currency": "INR",
+                "description": "Test ",
+                "expire_by": expire_by,  # Expiry time set to 24 hours from now
+                "reference_id": "TFS Subscription ",  # Optional: Custom reference ID for tracking
+                "redirect_url": "https://yourwebsite.com/payment-success",  # URL after successful payment
+                "cancel_url": "https://yourwebsite.com/payment-failure",  # URL after failed payment
+                #"order_id": razorpay_order_id,  # Attach the Razorpay order ID to the payment link
+            }
+
+            payment_link = razorpay_client.payment_link.create(data=payment_link_data)
+            # Extract payment link from the response
+            link = payment_link['short_url']
+            return {"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
+
+        except Exception as e:
+            print(e)
+            return {"message":str(e)}
     @staticmethod
     def json_response(status, message, error, data,code=''):
         return JSONResponse({

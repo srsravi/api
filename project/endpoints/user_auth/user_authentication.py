@@ -1052,6 +1052,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
 @router.post("/add-subscriber",  response_description="enquirer to make as customer")
 async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
+        enquiry_id =  None
         tenant_id = 1
         email =  request.email
         first_name = request.first_name
@@ -1067,6 +1068,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
         current_plan_id = None
         if request.tenant_id:
             tenant_id = request.tenant_id
+        if request.enquiry_id:
+            enquiry_id = request.enquiry_id
         role_id = auth_user["role_id"]
         user_id = auth_user["id"]
         if request.service_type_id is not None:
@@ -1089,7 +1092,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
 
 
-        
+        #if enquiry_id is not None:
+
         existing_customer = db.query(CustomerModal).filter(CustomerModal.email == email).first()
         configuration =None
         configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
@@ -1243,6 +1247,20 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
 
         else:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_ALREADY_EXISTS, error=[], data={})
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
+
+@router.post("/generate-link",  response_description="enquirer to make as customer")
+async def generate_link(background_tasks: BackgroundTasks,db: Session = Depends(get_database_session)):
+    try:
+        
+        data = Utility.create_payment_link(db)
+        return Utility.json_response(status=SUCCESS, message=all_messages.SOMTHING_WRONG, error=[], data=data)
+
     except Exception as E:
         print(E)
         db.rollback()

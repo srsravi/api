@@ -536,6 +536,7 @@ class createSubscriberSchema(BaseModel):
         relation_with_nominee:'',
        
         """
+    enquiry_id:Optional[int] = None
     email: EmailStr = Field(..., description="The email address of the user.")
     first_name: str
     last_name: str

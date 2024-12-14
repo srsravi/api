@@ -56,6 +56,8 @@ fastapi-pagination = "^0.12.26"
 aiohttp = "^3.10.5"
 requests = "^2.32.3"
 pdfkit = "^1.0.0"
+setuptools = "61.0.0"
+razorpay = "2.2.3"
 
 
 [build-system]
