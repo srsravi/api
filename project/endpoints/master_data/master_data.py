@@ -34,7 +34,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from ...library.webSocketConnectionManager import manager
 from fastapi import  Request, HTTPException
 import razorpay
-
+from fastapi.responses import RedirectResponse
 router = APIRouter(
     prefix="/masterdata",
     tags=["Master Data"],
@@ -455,6 +455,7 @@ async def payment_webhook(request: Request):
         order_id = payload['order_id']
         # Redirect user or update your database
         print(f"Payment Success! Payment ID: {payment_id}, Order ID: {order_id}")
+        return RedirectResponse(url="https://yourwebsite.com/payment-success")
         return {"message": "Payment Success", "payment_id": payment_id, "order_id": order_id}
     
     elif event == "payment.failed":
@@ -463,7 +464,8 @@ async def payment_webhook(request: Request):
         order_id = payload['order_id']
         # Handle failure
         print(f"Payment Failed! Payment ID: {payment_id}, Order ID: {order_id}")
-        return {"message": "Payment Failed", "payment_id": payment_id, "order_id": order_id}
+        return RedirectResponse(url="https://yourwebsite.com/payment-fail")
+        # return {"message": "Payment Failed", "payment_id": payment_id, "order_id": order_id}
 
     return {"message": "OK"}
 

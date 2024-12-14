@@ -38,7 +38,7 @@ class Utility:
                 "currency": "INR",
                 "description": "Test ",
                 "expire_by": expire_by,  # Expiry time set to 24 hours from now
-                "reference_id": "Tfs Subscription test ",  # Optional: Custom reference ID for tracking
+                "reference_id": razorpay_order_id,  # Optional: Custom reference ID for tracking
                 #"redirect_url": "https://yourwebsite.com/payment-success",  # URL after successful payment
                # "cancel_url": "https://yourwebsite.com/payment-failure",  # URL after failed payment
                 #"order_id": razorpay_order_id,  # Attach the Razorpay order ID to the payment link
