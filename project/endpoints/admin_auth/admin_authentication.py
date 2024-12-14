@@ -261,7 +261,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         if request.customer:
             customer = request.customer
         
-        query = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        query = db.query(AdminUser).filter(AdminUser.id == user_id)
         if customer>=1:
             category ="CUSTOMER_FORGOT_PASSWORD"
             query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
