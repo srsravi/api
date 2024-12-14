@@ -14,7 +14,7 @@ razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izD
 class Utility:
 
     @staticmethod
-    def create_payment_link():
+    def create_payment_link(db:None):
         
         try:
             # Calculate expiration time for 24 hours from now
@@ -38,10 +38,15 @@ class Utility:
                 "currency": "INR",
                 "description": "Test ",
                 "expire_by": expire_by,  # Expiry time set to 24 hours from now
-                "reference_id": "TFS Subscription ",  # Optional: Custom reference ID for tracking
-                "redirect_url": "https://yourwebsite.com/payment-success",  # URL after successful payment
-                "cancel_url": "https://yourwebsite.com/payment-failure",  # URL after failed payment
+                "reference_id": "Tfs Subscription test ",  # Optional: Custom reference ID for tracking
+                #"redirect_url": "https://yourwebsite.com/payment-success",  # URL after successful payment
+               # "cancel_url": "https://yourwebsite.com/payment-failure",  # URL after failed payment
                 #"order_id": razorpay_order_id,  # Attach the Razorpay order ID to the payment link
+                "notify": {  # Notification URLs for success or failure
+                    "email": True,  # Optional: Send email notifications
+                    "sms": True,    # Optional: Send SMS notifications
+                    "whatsapp": False,  # Optional: Send WhatsApp notifications
+                },
             }
 
             payment_link = razorpay_client.payment_link.create(data=payment_link_data)
