@@ -315,29 +315,6 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
-@router.post("/update-enquirer-status",  response_description="enquirer to make as customer")
-async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
-    try:
-        enquiry_id =  request.enquiry_id
-        tenant_id = 1
-        service_type_id =None
-        if request.tenant_id:
-            tenant_id = request.tenant_id
-        role_id = auth_user["role_id"]
-        user_id = auth_user["id"]
-
-        enquiry_data =  db.query(EnquiryModel).filter(EnquiryModel.id==enquiry_id,EnquiryModel.tenant_id==tenant_id,EnquiryModel.status_id==1).first()
-        if enquiry_data is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Data is not found!", error=[], data={})
-        enquiry_data.status_id =2
-        db.commit()
-        background_tasks.add_task(Email.send_mail, recipient_email=[enquiry_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-        return Utility.json_response(status=SUCCESS, message="Enquir status changed successfully", error=[],data=[],code="")
-        
-    except Exception as E:
-        print(E)
-        db.rollback()
-        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 #createCustomerSchema
 @router.post("/invite-customer", response_description="Invite Customer")
@@ -904,60 +881,6 @@ async def resend_otp(request: SignupOtp,background_tasks: BackgroundTasks, db: S
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
-@router.post("/forgot-password", response_description="Forgot Password")
-async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
-    try:
-        
-        email = request.email
-        date_of_birth = request.date_of_birth
-        user_obj = db.query(CustomerModal).filter(CustomerModal.email == email).first()
-        
-        if user_obj is None:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
-        else:
-            if user_obj.status_id ==3:
-                if user_obj.date_of_birth != date_of_birth:
-                    return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
-                else:
-                    rowData = {}
-                    udata = Utility.model_to_dict(user_obj.country_details)
-                    rowData['user_id'] = udata["id"]
-                    rowData['email'] = user_obj.email
-                    rowData['first_name'] = user_obj.first_name
-                    rowData['last_name'] = user_obj.last_name
-                    rowData['country_id'] = user_obj.country_id
-                    #rowData['mobile_no'] = udata.get("mobile_no",'')
-                    #rowData['date_of_birth'] = udata.get("date_of_birth",'')
-                    rowData['status_id'] = user_obj.status_id            
-                    otp =Utility.generate_otp()
-                    token = AuthHandler().encode_token({"otp":otp})
-                    user_obj.token = token
-                    user_obj.otp = otp
-                    db.commit()
-                    #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
-                    rowData["otp"] = otp
-                    rowData["user_id"] = user_obj.id
-                    rowData['name'] = f"""{user_obj.first_name} {user_obj.last_name}"""
-                    rowData["reset_link"] = f'''{WEB_URL}ForgotPassword?token={token}&user_id={user_obj.id}'''
-
-                    background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
-                    return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
-                
-            elif  user_obj.status_id == 1:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
-            elif  user_obj.status_id == 2:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
-            elif user_obj.status_id == 3:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
-            elif user_obj.status_id == 4:
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
-            else:
-                db.rollback()
-                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
-    except Exception as E:
-        db.rollback()
-        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 
 @router.post("/reset-password", response_description="Forgot Password")
@@ -1000,6 +923,76 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+
+@router.post("/forgot-password", response_description="Forgot Password")
+async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+    try:
+        
+        email = request.email
+        customer = 0
+        if request.customer:
+            customer = request.customer
+        #date_of_birth = request.date_of_birth
+        query = db.query(AdminUser).filter(AdminUser.email == email)
+        category ="ADMIN_FORGOT_PASSWORD"
+        category ="CUSTOMER_FORGOT_PASSWORD"
+        # if customer>=1:
+        #     category ="CUSTOMER_FORGOT_PASSWORD"
+        
+        query = db.query(CustomerModal).filter(CustomerModal.email == email)
+        user_obj = query.first()
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id ==2 or user_obj.status_id ==3 :
+                # if user_obj.date_of_birth != date_of_birth:
+                #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
+                
+                rowData = {}
+                udata = Utility.model_to_dict(user_obj)
+                rowData['user_id'] = udata["id"]
+                rowData['email'] = user_obj.email
+                rowData['first_name'] = user_obj.first_name
+                rowData['last_name'] = user_obj.last_name
+                #rowData['country_id'] = user_obj.country_id
+                #rowData['mobile_no'] = udata.get("mobile_no",'')
+                #rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                rowData['status_id'] = user_obj.status_id            
+                otp =Utility.generate_otp()
+                #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+                rowData["otp"] = otp
+                rowData["user_id"] = user_obj.id
+                rowData['name'] = f"""{user_obj.name}"""
+                
+                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=user_obj.id
+                db.add(tokensModel(**user_dict))
+                rowData["reset_link"] =  f'''{WEB_URL}set-customer-password?token={token}&user_id={user_obj.id}&customer={customer}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                db.commit()
+
+                background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
+                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
+            
+            elif  user_obj.status_id == 1:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
+            elif  user_obj.status_id == 2:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
+            elif user_obj.status_id == 3:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
+            elif user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
 @router.post("/set-password", response_description="Forgot Password")
 async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
     try:
@@ -1009,9 +1002,10 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         customer = 0
         if request.customer:
             customer = request.customer
-        query = db.query(AdminUser).filter(AdminUser.id == user_id)
-        if customer>=1:
-            query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
+        # query = db.query(AdminUser).filter(AdminUser.id == user_id)
+        # if customer>=1:
+        
+        query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
         user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
@@ -1053,6 +1047,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
 async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
         enquiry_id =  None
+        send_payment_link = False
         tenant_id = 1
         email =  request.email
         first_name = request.first_name
@@ -1068,15 +1063,18 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
         current_plan_id = None
         if request.tenant_id:
             tenant_id = request.tenant_id
+        if request.send_payment_link:
+            send_payment_link = request.send_payment_link
         if request.enquiry_id:
             enquiry_id = request.enquiry_id
+        
         role_id = auth_user["role_id"]
         user_id = auth_user["id"]
         if request.service_type_id is not None:
             service_type_id = request.service_type_id
         
         
-        
+        enquiry_details =  None
         plan_details =None
         if service_type_id is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Service Type is required!", error=[], data={})
@@ -1092,8 +1090,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
 
 
-        #if enquiry_id is not None:
-
+        if enquiry_id is not None:
+            enquiry_details = db.query(EnquiryModel).filter(EnquiryModel.email == email, EnquiryModel.id==enquiry_id).first()
         existing_customer = db.query(CustomerModal).filter(CustomerModal.email == email).first()
         configuration =None
         configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
@@ -1114,7 +1112,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                                       relation_with_nominee = relation_with_nominee,
                                       password=str(Utility.uuid()),
                                       tenant_id=tenant_id,
-                                      service_type_id=1
+                                      service_type_id=1,
+                                      current_plan_id=current_plan_id,
                                       )
             
             mail_data = {"body":"Welcome to TFS"}
@@ -1124,63 +1123,58 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
             db.flush()
             db.commit()
             if user_data.id:
+                user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
+                if enquiry_details is not None:
+                        enquiry_details.status_id = 2
+                udata =  Utility.model_to_dict(user_data)
                 if role_id == 3:
                     user_data.salesman_id = user_id
                 if role_id == 4:
                     user_data.agent_id = user_id
-                
+                if configuration is not None:                
+                        user_data.salesman_id = configuration.user_id    
                                            
                 # this is subscription Functionality
                 razorpay_order_id = None, ##we need to impliment
                 razorpay_payment_id = None
-                new_subscription = SubscriptionModel(
-                customer_id = user_data.id ,
-                plan_id =current_plan_id,
-                start_date = datetime.now(timezone.utc),
-                end_date = None,
-                payment_status = "Pending",  # Payment status (Pending, Success, Failed)
-                payment_amount = plan_details.amount,
-                razorpay_order_id = razorpay_order_id, ##we need to impliment
-                razorpay_payment_id = razorpay_payment_id,
-                tenant_id = user_data.tenant_id ##we need to impliment
-                
-                )
-                db.add(new_subscription)
+                if send_payment_link:
+                    patment_details = Utility.create_payment_link(db)
+                    new_subscription = SubscriptionModel(
+                    customer_id = user_data.id ,
+                    plan_id =current_plan_id,
+                    start_date = None,
+                    end_date = None,
+                    payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
+                    payment_amount = plan_details.amount,
+                    razorpay_order_id = razorpay_order_id, ##we need to impliment
+                    razorpay_payment_id = razorpay_payment_id,
+                    tenant_id = user_data.tenant_id ##we need to impliment
+                    
+                    )
+                    db.add(new_subscription)
+                    db.commit()
+                rowData = {}
+                rowData['user_id'] = udata["id"]
+                rowData['first_name'] = udata.get("first_name","")
+                rowData['last_name'] = udata.get("last_name","")
+                rowData['mobile_no'] = udata.get("mobile_no",'')
+                rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                mail_data = {}
+                mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
+                mail_data["otp"] = otp
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=udata["id"]
+                db.add(tokensModel(**user_dict))
+                db.query(CustomerModal).filter(CustomerModal.email == email).update({"status_id": 2}, synchronize_session=False)
                 db.commit()
-                if new_subscription.id:
-                    user_data.current_plan_id = current_plan_id
-                    db.commit()
-                    if configuration is not None:                    
-                        user_data.salesman_id = configuration.user_id
-                        
-                    user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
-                    udata =  Utility.model_to_dict(user_data)
-                    rowData = {}
-                    rowData['user_id'] = udata["id"]
-                    rowData['first_name'] = udata.get("first_name","")
-                    rowData['last_name'] = udata.get("last_name","")
-                    rowData['mobile_no'] = udata.get("mobile_no",'')
-                    rowData['date_of_birth'] = udata.get("date_of_birth",'')
-                    
-                    mail_data = {}
-                    mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
-                    mail_data["otp"] = otp
-                    user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-                    token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
-                    user_dict["token"]=token
-                    user_dict["ref_id"]=udata["id"]
-                    db.add(tokensModel(**user_dict))
-                    db.query(CustomerModal).filter(CustomerModal.email == email).update({"status_id": 2}, synchronize_session=False)
-                    db.commit()
-                    link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
-                    background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
-                    
-                    if user_data.id:
-                        rowData["user_id"] = user_data.id
-                    return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
-                else:
-                    return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
-
+                link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
+                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Welcome to TFS", template='add_user.html',data={"name":user_data.name,"link":link})
+                
+                if user_data.id:
+                    rowData["user_id"] = user_data.id
+                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
             else:
                 
                 db.rollback()

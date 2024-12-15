@@ -554,6 +554,7 @@ class createSubscriberSchema(BaseModel):
     service_type_id: Optional[int] = 1
     current_plan_id:int
     tenant_id:Optional[int] =1
+    send_payment_link:Optional[bool] = False
     @validator('email', always=True)
     def check_email(cls, v):
         if v is None:
