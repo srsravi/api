@@ -218,7 +218,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                             user_data.status_id = 2
                             user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                             user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp}
-                            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name},43200)
                             user_dict["token"]=token
                             user_dict["ref_id"]=user_data.id
                             db.add(tokensModel(**user_dict))
@@ -254,7 +254,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                 mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
                 mail_data["otp"] = otp
                 user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name},43200)
                 user_dict["token"]=token
                 user_dict["ref_id"]=udata["id"]
                 db.add(tokensModel(**user_dict))
@@ -387,7 +387,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
                 rowData['date_of_birth'] = udata.get("date_of_birth",'')
                 otp = str(Utility.generate_otp())
                 category = "ADD_USER"
-                token = AuthHandler().encode_token({"user_id":user_data.id,"catrgory":category,"otp":otp,"invite_role_id":user_data.role_id,"email":user_data.email,"name":user_data.name})
+                token = AuthHandler().encode_token({"user_id":user_data.id,"catrgory":category,"otp":otp,"invite_role_id":user_data.role_id,"email":user_data.email,"name":user_data.name},43200)
                 link = f'''{WEB_URL}set-customer-password?token={token}&user_id={user_data.id}'''
                 user_dict={"user_id":user_data.id,"catrgory":category,"otp":otp,"token":token,"ref_id":user_data.id}
                 db.add(tokensModel(**user_dict))
@@ -415,7 +415,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             
             #del existing_user.otp
             #del existing_user.password
-            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name},43200)
             link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
           
             user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp}
@@ -563,7 +563,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             
             #del existing_user.otp
             #del existing_user.password
-            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name})
+            new_token = AuthHandler().encode_token({"user_id":existing_user.id,"catrgory":category,"otp":otp,"invite_role_id":existing_user.role_id,"email":existing_user.email,"name":existing_user.name},43200)
             link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={existing_user.id}'''
           
             user_dict={"user_id":existing_user.id,"catrgory":category,"otp":otp}
@@ -633,7 +633,7 @@ async def verify_account(request: VerifyAccount,background_tasks: BackgroundTask
             rowData['first_name'] = user_obj.first_name
             rowData['last_name'] = user_obj.last_name
             rowData['status_id'] = user_obj.status_id
-            new_token = AuthHandler().encode_token({"user_id":user_obj.id,"catrgory":category,"otp":otp,"invite_role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+            new_token = AuthHandler().encode_token({"user_id":user_obj.id,"catrgory":category,"otp":otp,"invite_role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name},43200)
             link = f'''{WEB_URL}set-customer-password?token={new_token}&user_id={user_obj.id}'''
            #rowData["country_details"] = Utility.model_to_dict(user_obj.country_details)
             #rowData["status_details"] = Utility.model_to_dict(user_obj.status_details)
@@ -966,7 +966,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 
                 Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
                 user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name},43200)
                 user_dict["token"]=token
                 user_dict["ref_id"]=user_obj.id
                 db.add(tokensModel(**user_dict))
@@ -1197,7 +1197,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                 mail_data["name"]= f'''{udata.get("first_name","")} {udata.get("last_name","")}'''
                 mail_data["otp"] = otp
                 user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
-                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name})
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name},43200)
                 user_dict["token"]=token
                 user_dict["ref_id"]=udata["id"]
                 db.add(tokensModel(**user_dict))
