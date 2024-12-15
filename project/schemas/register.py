@@ -542,6 +542,7 @@ class createSubscriberSchema(BaseModel):
     last_name: str
     date_of_birth: date = Field(..., description="Must be at least 18 years old.And format should be YYYY-MM-DD")
     mobile_no: str = Field(..., description="The mobile phone number of the user, including the country code.")
+    gender: Optional[str]=''
     alternate_mobile_no:str = Field(..., description="The mobile phone number of the user, including the country code.")
     pan_card_number: Optional[str]=''
     aadhaar_card_number :Optional[str]=''
@@ -599,4 +600,8 @@ class AddPlanToUserSchema(BaseModel):
     tenant_id:Optional[int]= 1
     current_plan_id:int
     customer_id:int
+class GetpaymentLink(BaseModel):
+    token:str
+    
+
     

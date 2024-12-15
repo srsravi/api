@@ -9,22 +9,26 @@ import string
 from ..models.admin_configuration_model import tokensModel
 import razorpay
 from datetime import datetime, timedelta
+import time
+import random
 razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 
 class Utility:
 
     @staticmethod
-    def create_payment_link(db:None):
+    def create_payment_link(amount=0,invoice=''):
         
         try:
+            if amount<=0:
+                return {"message":"Amount is required","status":False}
             # Calculate expiration time for 24 hours from now
-            expire_time = datetime.now() + timedelta(hours=24)
+            expire_time = datetime.now() + timedelta(hours=48)
             expire_by = int(expire_time.timestamp())  # Convert to Unix timestamp
-            amount =1
+            
             order_data = {
                 "amount": int(amount * 100),  # Amount in paise (smallest unit)
                 "currency": "INR",
-                "receipt": "order_receipt_12345",  # Custom receipt number (optional)
+                "receipt": invoice,  # Custom receipt number (optional)
                 "payment_capture": 1,  # Set to 1 to capture payment immediately
             }
 
@@ -32,6 +36,7 @@ class Utility:
           
 
             order = razorpay_client.order.create(data=order_data)
+            print(order)
             razorpay_order_id = order['id']  # Retrieve the order ID
             payment_link_data = {
                 "amount": int( amount* 100),  # Amount in paise (smallest unit)
@@ -52,11 +57,11 @@ class Utility:
             payment_link = razorpay_client.payment_link.create(data=payment_link_data)
             # Extract payment link from the response
             link = payment_link['short_url']
-            return {"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
+            return {"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
 
         except Exception as e:
             print(e)
-            return {"message":str(e)}
+            return {"message":str(e),"status":False}
     @staticmethod
     def json_response(status, message, error, data,code=''):
         return JSONResponse({
@@ -248,9 +253,11 @@ class Utility:
     @staticmethod
     def generate_tfs_code(role_id):
         code = "TFS"
+        if role_id == "INVOICE":
+            code = f"INV-{datetime.now().strftime("%d%m%Y")}-{int(time.time())}-{random.randint(1000, 9999999)}"
         if role_id=="ENQUIRY_OTP":
             code = "TFS-ENQ"
-        if role_id==5:
+        elif role_id==5:
             code = "TFS-M"
         return code
     # def inactive_previous_tokens(db =None,category:str='',user_id:int=0):

@@ -71,6 +71,7 @@ class CustomerModal(BaseModel):
     first_name = Column(String(50))
     last_name = Column(String(50))
     name = Column(String(150), default='')
+    gender = Column(String(150), default='')
     password = Column(Text)
     token = Column(Text, default="")
     email = Column(String(161), nullable=False )
@@ -138,10 +139,11 @@ class SubscriptionModel(BaseModel):
     end_date = Column(DateTime,nullable=True,)
     payment_status = Column(String(100), default="Pending")  # Payment status (Pending, Success, Failed)
     payment_amount = Column(Float)
+    invoice_id = Column(String(100), index=True,default=None)
     razorpay_order_id = Column(String(100), index=True,default=None)  # Razorpay order ID
     razorpay_payment_id = Column(String(100), index=True,default=None)  # Razorpay payment ID
     status = Column(Boolean, default=False, comment="Is status ==True plan is active, if False == plan inactive")
-
+    payment_link = Column(Text(), index=True,default=None) 
     customer = relationship('CustomerModal', back_populates='subscription')
     plan = relationship('MdSubscriptionPlansModel', back_populates='subscriptions')
     tenant_id = Column(Integer, default=1)
