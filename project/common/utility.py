@@ -41,7 +41,7 @@ class Utility:
             payment_link_data = {
                 "amount": int( amount* 100),  # Amount in paise (smallest unit)
                 "currency": "INR",
-                "description": "Test ",
+                "description": "TFS Subscription",
                 "expire_by": expire_by,  # Expiry time set to 24 hours from now
                 "reference_id": razorpay_order_id,  # Optional: Custom reference ID for tracking
                 #"redirect_url": "https://yourwebsite.com/payment-success",  # URL after successful payment
