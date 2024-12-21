@@ -1,11 +1,11 @@
 [
 	{
 		"id": 1,
-		"name": "Account  Initiated"
+		"name": "Signup Initiated"
 	},
 	{
 		"id": 2,
-		"name": "Verification Pending"
+		"name": "Signup U/P"
 	},
 	{
 		"id": 3,
