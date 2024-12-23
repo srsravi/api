@@ -254,7 +254,7 @@ class Utility:
     def generate_tfs_code(role_id):
         code = "TFS"
         if role_id == "INVOICE":
-            code = f"INV-{datetime.now().strftime("%d%m%Y")}-{int(time.time())}-{random.randint(1000, 9999999)}"
+            code = f'INV-{datetime.now().strftime("%d%m%Y")}-{int(time.time())}-{random.randint(1000, 9999999)}'
         if role_id=="ENQUIRY_OTP":
             code = "TFS-ENQ"
         elif role_id==5:

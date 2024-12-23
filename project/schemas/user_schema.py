@@ -53,6 +53,7 @@ class UpdateProfile(BaseModel):
    
 
 class UpdatePassword(BaseModel):
+    user_id:int
     old_password:str
     password: str
     confirm_password: str = Field(..., description="Test Search")

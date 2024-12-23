@@ -204,6 +204,8 @@ async def update_password(request: UpdatePassword,auth_user=Depends(AuthHandler(
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
 @router.post("/list", response_description="Fetch Users List")
 async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     #user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()

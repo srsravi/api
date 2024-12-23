@@ -599,10 +599,6 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
         if request.customer:
             customer = request.customer
         query = db.query(AdminUser).filter(AdminUser.id == user_id)
-        category ="ADMIN_FORGOT_PASSWORD"
-        if customer>=1:
-            category ="CUSTOMER_FORGOT_PASSWORD"
-            query = db.query(CustomerModal).filter(CustomerModal.id == user_id)
         user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
@@ -620,6 +616,8 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
     except Exception as E:
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
 @router.post("/get-branch-list", response_model=BranchListResponseSchema, response_description="Fetch Users List")
 async def get_users(filter_data: GetBranchListRequestSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:

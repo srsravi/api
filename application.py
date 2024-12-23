@@ -56,7 +56,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Check if the limit has been exceeded
         if client_data["count"] > self.limit:
             #raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
-            return JSONResponse({"status":422,"message":f"Your access is excedeed {client_ip}=={client_data["count"]}","errors":"dhgdhg","code":"INPUT_VALIDATION_ERROR"},status_code=422)
+            return JSONResponse({"status":422,"message":f'Your access is excedeed {client_ip}=={client_data["count"]}',"errors":"dhgdhg","code":"INPUT_VALIDATION_ERROR"},status_code=422)
         response = await call_next(request)
         return response
 
