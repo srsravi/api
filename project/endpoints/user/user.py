@@ -444,8 +444,6 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         customer = customer_query.one_or_none()
         if customer is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={})
-        elif customer.status_id ==3:
-            return Utility.json_response(status=SUCCESS, message=all_messages.UPDATE_PASSWORD_SUCCESS, error=[], data={},code="")
         elif  customer.status_id == 1:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
         elif  customer.status_id == 2:
@@ -460,7 +458,12 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
             query = query.filter(CustomerDetailsModel.tenant_id == auth_user["tenant_id"])
         dbcursor = query.first()
         if dbcursor is None:
-            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+            customer_details ={}
+            applicant_details = Utility.model_to_dict(customer)
+            del applicant_details["password"]
+            customer_details ={}
+            customer_details["applicant_details"] = applicant_details
+            return Utility.json_response(status=SUCCESS, message=all_messages.CUSTOMER_DETAILS_NOT_FOUND, error=[], data=customer_details,code="CUSTOMER_DETAILS_NOT_FOUND")
 
         application_data = Utility.model_to_dict(dbcursor)
         if dbcursor.customer_id and dbcursor.customer_basic_details is not None:
