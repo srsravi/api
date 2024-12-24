@@ -429,7 +429,7 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
 
         
         customer_id = request.customer_id
-        customer = db.query(CustomerModal).options(
+        customer_query = db.query(CustomerModal).options(
         joinedload(CustomerModal.tenant_details),
         joinedload(CustomerModal.role_details),
         joinedload(CustomerModal.status_details),
@@ -437,8 +437,11 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         joinedload(CustomerModal.service_details),
         joinedload(CustomerModal.loan_applications_list),
         joinedload(CustomerModal.current_plan_details)
-    ).filter(CustomerModal.id ==customer_id).one_or_none()
-
+    ).filter(CustomerModal.id ==customer_id)
+        if role_id !=1 and auth_user["tenant_id"] is not None:
+            customer_query = customer_query.filter(CustomerModal.tenant_id == auth_user["tenant_id"])
+        
+        customer = customer_query.one_or_none()
         if customer is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={})
         elif customer.status_id ==3:
@@ -483,17 +486,24 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         if dbcursor.updated_by and dbcursor.updated_by_details is not None:
             application_data["updated_by_details"] = Utility.model_to_dict(dbcursor.updated_by_details)
         
-        if dbcursor.agent_id :
+        
+        if customer.tenant_id and customer.tenant_details:
+            #get agent details from Adminuser Modal
+            application_data["tenant_details"] = {}
+            application_data["tenant_details"]["email"] =customer.tenant_details.email
+        if customer.created_by and customer.created_by_details:
+            
+            application_data["applicant_details"]["created_by_details"] = customer.created_by_details
+        
+        if customer.agent_id :
             #get agent details from Adminuser Modal
             pass
-        if dbcursor.salesman_id :
+        if customer.salesman_id :
             #get salesman details from Adminuser Modal
             pass
-        if dbcursor.admin_id :
-            #get admin details from Adminuser Modal
-            pass
         
-        return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=application_data,code="")
+        
+        return Utility.json_response(status=SUCCESS, message="Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:
         print(E)
