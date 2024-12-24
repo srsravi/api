@@ -522,16 +522,17 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
         if "tenant_id"  in auth_user:
             tenant_id = auth_user["tenant_id"]
         loan_application_form_id = request["loan_application_form_id"]
-        query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.id == loan_application_form_id)
-        details = query.first()
-        dbcursor =None
-        dbcursor =  CustomerDetailsModel(customer_id=loan_application_form_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
-        if auth_user["role_id"] ==3:
-            dbcursor.salesman_id = auth_user["id"]
-        if auth_user["role_id"] ==4:
-            dbcursor.agent_id = auth_user["id"]
-        db.add(dbcursor)
-        db.commit()
+        query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.customer_id == loan_application_form_id)
+        dbcursor = query.first()
+       
+        if dbcursor is  None:
+            dbcursor =  CustomerDetailsModel(customer_id=loan_application_form_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
+            if auth_user["role_id"] ==3:
+                dbcursor.salesman_id = auth_user["id"]
+            if auth_user["role_id"] ==4:
+                dbcursor.agent_id = auth_user["id"]
+            db.add(dbcursor)
+            db.commit()
         
         if dbcursor is None:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
