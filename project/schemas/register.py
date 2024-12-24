@@ -66,6 +66,7 @@ class createCustomerSchema(BaseModel):
     reference_id: Optional[str]=''
     service_type_id: int
     tenant_id:Optional[int] =1
+    current_plan_id:Optional[int] = None
     mobile_no: str = Field(..., description="The mobile phone number of the user, including the country code.")
     @validator('email', always=True)
     def check_email(cls, v):

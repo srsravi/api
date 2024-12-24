@@ -478,9 +478,18 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
         email = request.email
         first_name = request.first_name
         last_name = request.last_name
+        current_plan_id =None
         if request.tenant_id is not None:
             tenant_id = request.tenant_id
         service_type_id = request.service_type_id
+        plan_details = None
+        if request.current_plan_id:
+            current_plan_id = request.current_plan_id
+            plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==current_plan_id).first()
+            if plan_details is None:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
+
+
         email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         if not re.fullmatch(email_regex, email):
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
@@ -507,6 +516,8 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                                       tenant_id=tenant_id,
                                       service_type_id=service_type_id
                                       )
+            if service_type_id==1 and current_plan_id is not None:
+                user_data.current_plan_id = current_plan_id
             #Send Mail to user with active link
             mail_data = {"body":"Welcome to TFS"}
             db.add(user_data)
@@ -514,11 +525,8 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                print("************  \n 1 \n \n \n ****************")
                 new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
-                print("************  \n 2 \n \n \n ****************")
                 db.add(new_lead)
-                print("************  \n 3 \n \n \n ****************")
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
                     user_data.salesman_id = configuration.user_id
@@ -540,6 +548,54 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                 user_dict["token"]=token
                 user_dict["ref_id"]=udata["id"]
                 db.add(tokensModel(**user_dict))
+
+                if service_type_id==1 and current_plan_id is not None:
+                    user_data.current_plan_id = current_plan_id
+                    razorpay_payment_id = None
+                    invoice_id = Utility.generate_tfs_code("INVOICE")
+                    patment_details = Utility.create_payment_link(plan_details.amount)
+                    if patment_details.get("status",False) and patment_details.get("payment_link","") != "" and "razorpay_order_id" in patment_details:
+                        #{"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
+                        mail_data["payment_link"] = patment_details["payment_link"]
+                        new_subscription = SubscriptionModel(
+                        customer_id = user_data.id ,
+                        plan_id =current_plan_id,
+                        start_date = None,
+                        end_date = None,
+                        invoice_id =invoice_id,
+                        payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
+                        payment_amount = plan_details.amount,
+                        razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
+                        razorpay_payment_id = razorpay_payment_id,
+                        payment_link=patment_details["payment_link"],
+                        tenant_id = user_data.tenant_id ##we need to impliment
+                        )
+                        db.add(new_subscription)
+                        db.commit()
+                        if new_subscription.id:
+                            link_otp = str(Utility.generate_otp())
+                            patment_link_category = "PAYMENT_LINK"
+                            token_data={"user_id": udata["id"] ,"catrgory":patment_link_category,"otp":link_otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name}
+                            token_data["name"] = user_data.name
+                            token_data["email"] = user_data.email
+                            token_data["payment_link"] = patment_details["payment_link"]
+                            
+
+                            token_data["plan_details"] = {}
+                            token_data["plan_details"]["name"] = plan_details.name
+                            token_data["plan_details"]["amount"] = plan_details.amount
+                            token_data["plan_details"]["validity"] = plan_details.name
+                            token_data["subscription_id"]  = new_subscription.id
+                            token = AuthHandler().encode_token(token_data,minutes=2880)
+                            token_data["link"] = f"{WEB_URL}payment?token={token}"
+                            tokenmodel = {"user_id":udata["id"],"catrgory":patment_link_category,"otp":link_otp}
+                            tokenmodel["token"]=token
+                            tokenmodel["ref_id"]=new_subscription.id
+                            db.add(tokensModel(**tokenmodel))
+                            db.commit()
+                            #background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
+                
+
                 db.commit()
                 background_tasks.add_task(Email.send_mail,recipient_email=[udata["email"]], subject=all_messages.PENDING_EMAIL_VERIFICATION_OTP_SUBJ, template='email_verification_otp.html',data=mail_data )
                 return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=rowData,code="SIGNUP_PROCESS_PENDING")
@@ -1278,7 +1334,7 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
                 db.add(tokensModel(**user_dict))
                 db.commit()
                 background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
-                return Utility.json_response(status=SUCCESS, message=all_messages.REGISTER_SUCCESS, error=[],data=token_data,code="subscription")
+                return Utility.json_response(status=SUCCESS, message=all_messages.LOAN_APPLICATION_CREATED, error=[],data=token_data,code="subscription")
             else:
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
