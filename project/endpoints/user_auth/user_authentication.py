@@ -597,7 +597,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                 db.add(tokensModel(**user_dict))
                 db.commit()
                 background_tasks.add_task(Email.send_mail, recipient_email=[existing_user.email], subject="Welcome to TFS", template='add_user.html',data={"name":existing_user.name,"link":link})
-                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
+                return Utility.json_response(status=SUCCESS, message=all_messages.OTP_VERIVICARION_SUCCESS, error=[], data=rowData,code="OTP_VERIVICARION_SUCCESS")
             
             elif  existing_user.status_id == 3:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ALREADY_PROFILE_IS_ACTIVE, error=[], data=rowData,code="ALREADY_PROFILE_IS_ACTIVE")
@@ -889,11 +889,12 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
         user_id = request.user_id
         token = str(request.token)
         password =  request.password
+        token_data = db.query(tokensModel).filter(tokensModel.token == token, tokensModel.user_id==user_id, tokensModel.active==True).first()
         user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
         else:
-            if token !=user_obj.token:
+            if token !=token_data.token:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Invalid Token", error=[], data={},code="INVALIED_TOKEN")
             if user_obj.status_id ==3:
                 user_obj.token = ''
