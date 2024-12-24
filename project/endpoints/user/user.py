@@ -513,6 +513,100 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+@router.post("/update-customer-details",response_model=UserListResponse, response_description="Get User Details")
+async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+       
+        role_id = auth_user["role_id"]
+        tenant_id = 1
+        if "tenant_id"  in auth_user:
+            tenant_id = auth_user["tenant_id"]
+        loan_application_form_id = request["loan_application_form_id"]
+        query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.id == loan_application_form_id)
+        details = query.first()
+        dbcursor =None
+        dbcursor =  CustomerDetailsModel(customer_id=loan_application_form_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
+        if auth_user["role_id"] ==3:
+            dbcursor.salesman_id = auth_user["id"]
+        if auth_user["role_id"] ==4:
+            dbcursor.agent_id = auth_user["id"]
+        db.add(dbcursor)
+        db.commit()
+        
+        if dbcursor is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+        print(dbcursor.id) 
+        # if request.get("date_of_birth",False):
+        #     dbcursor.date_of_birth = request["date_of_birth"]
+
+        # if request.get("alternate_mobile_no",False):
+        #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
+
+        
+        dbcursor.service_type_id = request.get("service_type_id",None)
+        dbcursor.loanAmount = request.get("loanAmount",None)
+        dbcursor.profession_type_id = request.get("profession_type_id",None)
+        dbcursor.lead_sourse_id = request.get("lead_sourse_id",None)
+        dbcursor.profession_sub_type_id = request.get("profession_sub_type_id",None)
+        dbcursor.companyName = request.get("companyName",'')
+        dbcursor.designation = request.get("designation",'')
+        dbcursor.totalExperience = request.get("totalExperience",None)
+        dbcursor.present_organization_years = request.get("present_organization_years",None)
+        dbcursor.workLocation = request.get("workLocation",'')
+        dbcursor.grossSalary = request.get("grossSalary",None)
+        dbcursor.netSalary = request.get("netSalary",None)
+        dbcursor.otherIncome = request.get("otherIncome","No")
+        dbcursor.other_income_list ='[]'
+        if request.get("otherIncome","No")=="Yes":
+            dbcursor.other_income_list = request.get("other_income_list","")
+        dbcursor.Obligations = request.get("Obligations","No")
+        dbcursor.all_obligations ='[]'
+        dbcursor.other_obligation = "[]"
+        if request.get("Obligations","No")=="Yes":
+            dbcursor.all_obligations = request.get("all_obligations","")
+            dbcursor.other_obligation = request.get("all_obligations","")
+        
+        dbcursor.obligations_per_month = request.get("obligations_per_month",None)
+
+
+        #SENP
+        dbcursor.number_of_years=request.get("number_of_years",'')
+        dbcursor.location=request.get("location",'')
+        dbcursor.last_turnover_year=request.get("last_turnover_year",'')
+        dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
+        dbcursor.last_year_itr=request.get("last_year_itr",'')
+        dbcursor.lastYearITRamount=request.get("lastYearITRamount",None)
+        dbcursor.current_turnover_year=request.get("current_turnover_year",'')
+        dbcursor.current_year_turnover_amount=request.get("current_year_turnover_amount",'')
+        dbcursor.current_year_itr=request.get("current_year_itr",'')
+        dbcursor.presentYearITRamount=request.get("presentYearITRamount",'')
+        dbcursor.avg_income_per_month=request.get("avg_income_per_month",'')
+
+        dbcursor.eligible=request.get("eligible","No")
+        dbcursor.fdir=request.get("fdir","")
+        dbcursor.description=request.get("description",None)
+        dbcursor.loan_eligible_type= None
+        dbcursor.loan_eligible_amount= None
+        if request.get("eligible","No")=="Yes":
+            dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
+            dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+
+        #SEP Column fields
+        #income_type_id
+        dbcursor.income_type_id = request.get("income_type_id",None)
+        dbcursor.total_obligation_amount_per_month = request.get("total_obligation_amount_per_month",None)
+        # if request.get("eligible","No")=="Yes":
+        #     dbcursor.status_id =2
+
+        db.commit()
+        return Utility.json_response(status=SUCCESS, message="Details  are updated successfully", error=[], data=request,code="")
+
+    except Exception as E:
+        print("ERROR")
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
 #getloan-application-details
 @router.post("/getloan-application-details",response_model=UserListResponse, response_description="Get User Details")
 async def get_loan_application_details( request: getloanApplicationDetails,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
@@ -681,6 +775,8 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
 
 @router.post("/applications-list", response_description="Fetch Applications List")
 async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
