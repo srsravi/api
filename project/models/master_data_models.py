@@ -98,6 +98,7 @@ class MdServiceTypes(BaseModel):
     description = Column(Text, default='')
     user_service = relationship("CustomerModal", back_populates="service_details")
     service_lonas_list = relationship("LoanapplicationModel", back_populates="detail_of_service")
+    service_customers_list = relationship("CustomerDetailsModel", back_populates="customer_service_detail")
     enquiry_service = relationship("EnquiryModel", back_populates="enquir_service_details")
     service_configuration = relationship('ServiceConfigurationModel', back_populates='service_details')
     
@@ -113,6 +114,7 @@ class MdLeadSources(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(55) )
     lead_customer = relationship("LoanapplicationModel", back_populates="lead_sourse_details")
+    customer_leads = relationship("CustomerDetailsModel", back_populates="leadsourse_details")
     
 
 #md_profession_types
@@ -122,6 +124,7 @@ class MdProfessionTypes(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(55) )
     lead_profession = relationship("LoanapplicationModel", back_populates="profession_details")
+    customers_profession = relationship("CustomerDetailsModel", back_populates="customer_profession_details")
 
 class MdProfessionSubTypes(BaseModel):
     __tablename__ = "md_profession_sub_types"
@@ -129,6 +132,8 @@ class MdProfessionSubTypes(BaseModel):
     name = Column(String(55) )
     profession_type_id = Column(Integer, default=None)
     lead_profession_sub_type = relationship("LoanapplicationModel", back_populates="profession_sub_type_details")
+    customer_profession_sub_type = relationship("CustomerDetailsModel", back_populates="customer_profession_sub_type_details")
+    
 
 class mdIncomeTypes(BaseModel):
     #md_income_types.json ,mdIncomeTypes
@@ -136,6 +141,7 @@ class mdIncomeTypes(BaseModel):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(55) )
     lead_income_type = relationship("LoanapplicationModel", back_populates="income_type_details")
+    customer_income_type = relationship("CustomerDetailsModel", back_populates="customer_income_type_details")
 class MdOtherIncomeTypes(BaseModel):
     #md_other_income_types.json,MdOtherIncomeTypes
     __tablename__ = "md_other_income_types"

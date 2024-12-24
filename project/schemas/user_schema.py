@@ -283,6 +283,13 @@ class GetUserDetailsReq(BaseModel):
         from_attributes = True
         str_strip_whitespace = True
 
+
+class getCustomerDetails(BaseModel):
+    customer_id:int
+    class Config:
+        from_attributes = True
+        str_strip_whitespace = True
+
 class getloanApplicationDetails(BaseModel):
     loan_application_form_id:int
     class Config:

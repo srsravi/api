@@ -4,7 +4,7 @@ from ...models.user_model import CustomerModal
 from ...models.master_data_models import MdUserRole,MdUserStatus,MdCountries
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,PaginatedBeneficiaryResponse,GetUserDetailsReq,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,PaginatedBeneficiaryResponse,getCustomerDetails,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 from ...schemas.user_schema import UpdateKycStatus
 from ...models.user_model import NotificationModel
 
@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks
 from fastapi_pagination import Params,paginate 
 from sqlalchemy.orm import  joinedload
 from ...library.webSocketConnectionManager import manager
-from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel
+from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel,CustomerDetailsModel
 from typing import Dict
 
 # APIRouter creates path operations for product module
@@ -408,36 +408,92 @@ async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHan
     return Utility.json_response(status=SUCCESS, message="User Details successfully retrieved", error=[], data=response_data,code="")
 
 @router.post("/get-customet-details",response_model=UserListResponse, response_description="Get User Details")
-async def get_benficiary( request: GetUserDetailsReq,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+async def get_customer_details( request: getCustomerDetails,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
-        
-        user_id = auth_user["id"]
-        if auth_user.get("role_id", -1) in [1]:
-            user_id = request.user_id
-        elif auth_user.get("role_id", -1) in [2]:
-            user_id = auth_user["id"]
-        if auth_user.get("role_id", -1) in [2] and user_id !=request.user_id:
-            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
+        """
+        customer_id -->customer_basic_details
+        service_type_id -->customer_service_detail
+        lead_sourse_id --> leadsourse_details
+        profession_type_id --->customer_profession_details
+        profession_sub_type_id -->customer_profession_sub_type_details
+        income_type_id ---> customer_income_type_details
+        updated_by -->updated_by_details
+       
+        agent_id = Column(Integer, nullable=True, default=None )
+        salesman_id = Column(Integer, nullable=True, default=None )
+        admin_id = Column(Integer, nullable=True, default=None )
+        loan_approved_by = Column(Integer, nullable=True, default=None )
 
-        user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
-        response_data = Utility.model_to_dict(user_obj)
-        response_data["user_id"] = response_data["id"]
-        response_data["tenant_details"] = Utility.model_to_dict(user_obj.tenant_details)
-        response_data["role_details"] = Utility.model_to_dict(user_obj.role_details)
-        response_data["status_details"] = Utility.model_to_dict(user_obj.status_details)
-        #response_data["country_details"] = Utility.model_to_dict(user_obj.country_details)
-        #response_data["kyc_status"] = Utility.model_to_dict(user_obj.kyc_status)
+        """
+        role_id = auth_user["role_id"]
+
         
-        if "login_fail_count" in response_data:
-            del response_data["login_fail_count"]
-        if "password" in response_data:
-            del response_data["password"]
-        if "otp" in response_data:
-            del response_data["otp"]
-        if "login_attempt_date" in response_data:
-            del response_data["login_attempt_date"]    
-                
-        return Utility.json_response(status=SUCCESS, message="User Details successfully retrieved", error=[], data=response_data,code="")
+        customer_id = request.customer_id
+        customer = db.query(CustomerModal).options(
+        joinedload(CustomerModal.tenant_details),
+        joinedload(CustomerModal.role_details),
+        joinedload(CustomerModal.status_details),
+        joinedload(CustomerModal.created_by_details),
+        joinedload(CustomerModal.service_details),
+        joinedload(CustomerModal.loan_applications_list),
+        joinedload(CustomerModal.current_plan_details)
+    ).filter(CustomerModal.id ==customer_id).one_or_none()
+
+        if customer is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={})
+        elif customer.status_id ==3:
+            return Utility.json_response(status=SUCCESS, message=all_messages.UPDATE_PASSWORD_SUCCESS, error=[], data={},code="")
+        elif  customer.status_id == 1:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
+        elif  customer.status_id == 2:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="LOGOUT_ACCOUNT")
+        elif customer.status_id == 4:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
+        elif customer.status_id == 5:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+
+        query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.customer_id == customer_id)
+        if role_id !=1 and auth_user["tenant_id"] is not None:
+            query = query.filter(CustomerDetailsModel.tenant_id == auth_user["tenant_id"])
+        dbcursor = query.first()
+        if dbcursor is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+
+        application_data = Utility.model_to_dict(dbcursor)
+        if dbcursor.customer_id and dbcursor.customer_basic_details is not None:
+            application_data["applicant_details"] = Utility.model_to_dict(dbcursor.customer_basic_details)
+            del application_data["applicant_details"]["password"]
+
+        if dbcursor.service_type_id and dbcursor.customer_service_detail is not None:
+            application_data["detail_of_service"] = Utility.model_to_dict(dbcursor.customer_service_detail)
+        #lead_sourse_id --> lead_sourse_details
+        if dbcursor.lead_sourse_id and dbcursor.leadsourse_details is not None:
+            application_data["lead_sourse_details"] = Utility.model_to_dict(dbcursor.leadsourse_details)
+        #profession_type_id --->profession_details
+        if dbcursor.profession_type_id and dbcursor.customer_profession_details is not None:
+            application_data["profession_details"] = Utility.model_to_dict(dbcursor.customer_profession_details)
+        
+        #profession_sub_type_id --->profession_sub_type_details
+        if dbcursor.profession_sub_type_id and dbcursor.customer_profession_sub_type_details is not None:
+            application_data["profession_sub_type_details"] = Utility.model_to_dict(dbcursor.customer_profession_sub_type_details)
+        #income_type_id --->income_type_details
+        if dbcursor.income_type_id and dbcursor.customer_income_type_details is not None:
+            application_data["income_type_details"] = Utility.model_to_dict(dbcursor.customer_income_type_details)
+        #created_by -->created_by_details
+        if dbcursor.updated_by and dbcursor.updated_by_details is not None:
+            application_data["updated_by_details"] = Utility.model_to_dict(dbcursor.updated_by_details)
+        
+        if dbcursor.agent_id :
+            #get agent details from Adminuser Modal
+            pass
+        if dbcursor.salesman_id :
+            #get salesman details from Adminuser Modal
+            pass
+        if dbcursor.admin_id :
+            #get admin details from Adminuser Modal
+            pass
+        
+        return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:
         print(E)

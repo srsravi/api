@@ -76,6 +76,7 @@ class AdminUser(BaseModel):
     my_users = relationship("CustomerModal", back_populates="created_by_details")
     my_applications = relationship("LoanapplicationModel", back_populates="created_by_details")
     user_configuration = relationship('ServiceConfigurationModel', back_populates='user_details')
+    my_customers = relationship("CustomerDetailsModel", back_populates="updated_by_details")
     
       
 

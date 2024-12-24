@@ -116,6 +116,7 @@ class CustomerModal(BaseModel):
     service_details = relationship("MdServiceTypes", back_populates="user_service")
 
     loan_applications_list = relationship("LoanapplicationModel", back_populates="customer_details")
+    customer_all_details = relationship("CustomerDetailsModel", back_populates="customer_basic_details")
     created_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
     created_by_details = relationship("AdminUser", back_populates="my_users")
     accepted_terms = Column(Boolean, default=False)
@@ -127,6 +128,84 @@ class CustomerModal(BaseModel):
     class Config:
         from_attributes = True
         str_strip_whitespace = True
+
+class CustomerDetailsModel(BaseModel):
+    __tablename__ = "customer_details"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=True, index=True)
+    customer_basic_details = relationship("CustomerModal", back_populates="customer_all_details")
+    tenant_id= Column(Integer, default=None,)
+    service_type_id = Column(Integer, ForeignKey("md_service_types.id"), nullable=True, default=None )
+    customer_service_detail = relationship("MdServiceTypes", back_populates="service_customers_list")
+
+    
+    loanAmount = Column(String(50), nullable=True, default="0")
+    lead_sourse_id = Column(Integer, ForeignKey("md_lead_sources.id"),nullable=True, default=None, unique=False, index=True)
+    leadsourse_details = relationship("MdLeadSources", back_populates="customer_leads")
+    
+    profession_type_id = Column(Integer, ForeignKey("md_profession_types.id"),nullable=True, default=None, unique=False)
+    customer_profession_details = relationship("MdProfessionTypes", back_populates="customers_profession")
+    
+    
+    profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"),nullable=True, default=None, unique=False)
+    customer_profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="customer_profession_sub_type")
+    
+    #Salaried column fields
+    companyName = Column(String(55), default='',nullable=True)
+    designation = Column(String(55), default='' ,nullable=True)
+    totalExperience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
+    present_organization_years =  Column(Integer, default=None ,nullable=True)
+    workLocation = Column(String(55), default='',nullable=True)
+    grossSalary = Column(Float, default=None, comment="gross salary" ,nullable=True)
+    netSalary = Column(Float, default=None, comment="net salary" ,nullable=True)
+    otherIncome = Column(String(6), default="No", comment="net salary" ,nullable=True)
+    Obligations = Column(String(6), default="No", comment="Obligations" ,nullable=True)
+    other_income_list = Column(Text, default=None, nullable=True,  comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
+    obligations_per_month = Column(Integer, default=None ,nullable=True)
+
+    #SENP Columns fields
+    #company_name = Column(String(55), default='') #already exists
+    #designation = Column(String(55), default='') #already exists
+    number_of_years = Column(Float, default='')
+    location = Column(String(55), default='')
+    last_turnover_year = Column(String(55), default='')
+    last_year_turnover_amount = Column(Float, default=None)
+    last_year_itr =  Column(Float, default=None)
+    lastYearITRamount =Column(Float, default=None)
+    current_turnover_year = Column(String(55), default='')
+    current_year_turnover_amount = Column(Float, default=None)
+    current_year_itr =  Column(Float, default=None)
+    presentYearITRamount = Column(Float, default=None)
+    #already exists above
+    #other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
+    avg_income_per_month =  Column(Float, default=None)
+    #Obligations = Column(String(6), default="No", comment="Obligations")
+    other_obligation = Column(Text, default='', comment="Optional details of other financial obligations as a JSON stringified list of dictionaries.")
+
+    #SEP Column fields
+    income_type_id = Column(Integer, ForeignKey("md_income_types.id"), default=None, unique=False)
+    customer_income_type_details = relationship("mdIncomeTypes", back_populates="customer_income_type")
+    
+    all_obligations = Column(Text, default=None)
+    total_obligation_amount_per_month = Column(Float, default=None)
+    coapplicant_data = Column(Text, default=None, comment="Json Stringify data")
+
+    agent_id = Column(Integer, nullable=True, default=None )
+    salesman_id = Column(Integer, nullable=True, default=None )
+    admin_id = Column(Integer, nullable=True, default=None )
+    loan_approved_by = Column(Integer, nullable=True, default=None )
+
+    eligible = Column(String(5), nullable=True, default="No" )
+    loan_eligible_type =Column(Integer, nullable=True, default=None )
+    loan_eligible_amount =  Column(Float, nullable=True, default=None )
+    fdir = Column(Text, nullable=True, default=None )
+    description = Column(Text, default=None, comment="description")
+
+
+    updated_by = Column(Integer, ForeignKey("admin.id"), nullable=True, default=None )
+    updated_by_details = relationship("AdminUser", back_populates="my_customers")
+    
+    
 
 
 class SubscriptionModel(BaseModel):
