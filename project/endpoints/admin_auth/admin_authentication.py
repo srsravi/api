@@ -339,7 +339,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
             if "status_id" in user_dict:
                 user_dict["status_details"] = Utility.model_to_dict(user_data.status_details)
             if "role_id" in user_dict:
-                user_dict["role_details"] = Utility.model_to_dict(user_data.status_details)
+                user_dict["role_details"] = Utility.model_to_dict(user_data.role_details)
             
             verify_password = AuthHandler().verify_password(str(password), user_data.password)
             current_time = datetime.now(timezone.utc)
