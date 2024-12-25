@@ -5,7 +5,7 @@ from ...models.admin_user import AdminUser
 from ...models.master_data_models import MdUserRole,MdUserStatus
 
 from . import APIRouter,Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.register import addSalesUserSchema, TenantSchema,TenantInvitationSchema,AdminRegister,InvitationSchema,TenantUserSchema,resetPassword,ForgotPasswordLinkSchema,SetPasswordSchema,UpdateAdminPassword,ForgotPassword
+from ...schemas.register import addSalesUserSchema, TenantSchema,TenantInvitationSchema,AdminRegister,InvitationSchema,TenantUserSchema,resetPassword,UpdateAdminStatus,SetPasswordSchema,UpdateAdminPassword,ForgotPassword
 import re
 from ...schemas.register import addSalesUserSchema,addAgentUserSchema
 from ...schemas.login import Login
@@ -590,7 +590,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/update-password", response_description="Update Admin Password")
-async def reset_password(request: UpdateAdminPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+async def reset_password(request: UpdateAdminPassword,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
         user_id = request.user_id
         old_password=request.old_password
@@ -613,6 +613,33 @@ async def reset_password(request: UpdateAdminPassword,background_tasks: Backgrou
         #background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject=all_messages.RESET_PASSWORD_SUCCESS, template='reset_password_success.html',data=rowData )               
         db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
         return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
+    except Exception as E:
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+@router.post("/update-status", response_description="Update Admin Password")
+async def reset_password(request: UpdateAdminStatus,background_tasks: BackgroundTasks, auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        user_id = request.user_id
+        status_id=request.status_id
+        role_id = auth_user["role_id"]
+        
+        if role_id not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+        query = db.query(AdminUser).filter(AdminUser.id == user_id)
+        if "tenant_id" in auth_user:
+            query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+        user_obj = query.first()
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        
+        if user_obj.status_id ==status_id:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_IS_SAME_STATUS, error=[], data={},code="USER_IS_SAME_STATUS")
+        else:
+            user_obj.status_id = status_id
+            db.commit()
+            db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+            return Utility.json_response(status=SUCCESS, message=f"{all_messages.USER_STATUS_UPDATED}", error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="USER_STATUS_UPDATED")
     except Exception as E:
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -719,6 +746,7 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
             query = query.order_by(desc("id"))
 
         # Apply pagination
+        
         offset = (filter_data.page - 1) * filter_data.per_page
         paginated_query = query.offset(offset).limit(filter_data.per_page).all()
         # Create a paginated response

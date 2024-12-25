@@ -358,6 +358,11 @@ class UpdateAdminPassword(BaseModel):
             if v != password:
                 raise ValueError('Password and Confirm Password do not match.')
         return v
+
+class UpdateAdminStatus(BaseModel):
+    user_id: int
+    status_id:int
+
 class TenantInvitationSchema(BaseModel):
     email: EmailStr
     name:str
