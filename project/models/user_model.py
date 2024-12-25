@@ -268,13 +268,13 @@ class LoanapplicationModel(BaseModel):
     #SENP Columns fields
     #company_name = Column(String(55), default='') #already exists
     #designation = Column(String(55), default='') #already exists
-    number_of_years = Column(Float, default='')
-    location = Column(String(55), default='')
-    last_turnover_year = Column(String(55), default='')
+    number_of_years = Column(Float, default=None)
+    location = Column(String(55), default=None)
+    last_turnover_year = Column(String(55), default=None)
     last_year_turnover_amount = Column(Float, default=None)
     last_year_itr =  Column(Float, default=None)
     lastYearITRamount =Column(Float, default=None)
-    current_turnover_year = Column(String(55), default='')
+    current_turnover_year = Column(String(55), default=None)
     current_year_turnover_amount = Column(Float, default=None)
     current_year_itr =  Column(Float, default=None)
     presentYearITRamount = Column(Float, default=None)

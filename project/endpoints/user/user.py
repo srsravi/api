@@ -444,14 +444,14 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         customer = customer_query.one_or_none()
         if customer is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={})
-        elif  customer.status_id == 1:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
-        elif  customer.status_id == 2:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="LOGOUT_ACCOUNT")
-        elif customer.status_id == 4:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
-        elif customer.status_id == 5:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif  customer.status_id == 1:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif  customer.status_id == 2:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif customer.status_id == 4:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif customer.status_id == 5:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
 
         query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.customer_id == customer_id)
         if role_id !=1 and auth_user["tenant_id"] is not None:
