@@ -700,7 +700,7 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
     try:
         #user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
         #AuthHandler().user_validate(user_obj)
-        if auth_user.get("role_id", -1) not in [1,2]:
+        if auth_user.get("role_id", -1) not in [1,2,3,4]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
         query = db.query(AdminUser).options(
             joinedload(AdminUser.admin_tenant_details),

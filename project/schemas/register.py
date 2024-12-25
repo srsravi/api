@@ -489,11 +489,11 @@ class addAgentUserSchema(BaseModel):
     last_name: str
     mobile_no: str
     experience:float
-    aternate_mobile_no:Optional[str]
-    passport:Optional[str]
-    aadhaar_card:Optional[str]
-    selfie:Optional[str]
-    gender:Optional[str]
+    aternate_mobile_no:Optional[str]=""
+    passport:Optional[str] =""
+    aadhaar_card:Optional[str]=""
+    selfie:Optional[str]=""
+    gender:Optional[str]=""
     date_of_birth: date = Field(..., description="Must be at least 18 years old.And format should be YYYY-MM-DD")
     
 
@@ -501,21 +501,21 @@ class addAgentUserSchema(BaseModel):
     state_id:Optional[int] = None
     location_id:Optional[int] = None
     present_address:Optional[str]
-    present_occupation:Optional[str]
-    pincode:Optional[str]
-    employer_name:Optional[str]
-    qualification:Optional[str]
+    present_occupation:Optional[str]=""
+    pincode:Optional[str]=""
+    employer_name:Optional[str]=""
+    qualification:Optional[str]=""
 
     
-    account_holder_name:Optional[str]
-    bank_name:Optional[str]
-    bank_account_number:Optional[str]
-    ifsc_code:Optional[str]
-    upload_check:Optional[str]
-    referrals:Optional[str]
-    profile_image:Optional[str]
+    account_holder_name:Optional[str]=""
+    bank_name:Optional[str]=""
+    bank_account_number:Optional[str]=""
+    ifsc_code:Optional[str]=""
+    upload_check:Optional[str]=""
+    referrals:Optional[str]=""
+    profile_image:Optional[str]=""
     role_id:int
-    tenant_id:Optional[int]
+    tenant_id:Optional[int]=None
 
     @field_validator('date_of_birth', mode='before')
     def validate_date_of_birth(cls, v, info):
