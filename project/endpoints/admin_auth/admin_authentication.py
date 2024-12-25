@@ -74,7 +74,7 @@ async def register(request: AdminRegister, db: Session = Depends(get_database_se
 @router.post("/add-user", response_description="add user")
 async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,login_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     try:
-        if login_user["role_id"] not in [1,2]:
+        if login_user["role_id"] not in [1,2,3,4]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={})
        
         email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
