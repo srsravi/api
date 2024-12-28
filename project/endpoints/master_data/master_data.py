@@ -222,14 +222,14 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
             func.lower(MdIfscCodes.IFSC) == search.lower()  # Compare lowercased IFSC and search string
         )
         total_count = query.count()
-        ifscode_list =[]
+        result_data =  None
         if total_count <=0:
             url = f"https://ifsc.razorpay.com/{filter_data.search_string}"
             response = requests.get(url)
             if response.status_code == 200:
                 try:
                     data = response.json()
-                    ifscode_list.append(data)
+                    result_data = data
                     total_count = 1
                     new_ifs = MdIfscCodes(
                     BANK = data.get("BANK",""),
@@ -248,33 +248,17 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
                     print(str(e))
 
         else:
-            sort_column = getattr(MdIfscCodes, filter_data.sort_by, None)
-            if sort_column:                
-                if filter_data.sort_order == "desc":
-                    query = query.order_by(desc(sort_column))
-                else:
-                    query = query.order_by(asc(sort_column))
-            else:
-                query = query.order_by(desc("IFSC"))
-
-            # Apply pagination
-            offset = (filter_data.page - 1) * filter_data.per_page
-            paginated_query = query.offset(offset).limit(filter_data.per_page).all()
-            # Create a paginated response
             
-            for item in paginated_query:
-                temp_item = Utility.model_to_dict(item)
-                ifscode_list.append(temp_item)
-        response_data = {
-            "total_count":total_count,
-            "list":ifscode_list,
-            "page":filter_data.page,
-            "per_page":filter_data.per_page
-        }
-        if total_count>0:
-            return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")    
+            result_data = Utility.model_to_dict(query.one())
+            
+            
+            
+        
+        if result_data is not None:
+            
+            return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=result_data,code="")    
         else:
-            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data=response_data,code="") 
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data=None,code="") 
 
     except Exception as e:
         print(e)        
