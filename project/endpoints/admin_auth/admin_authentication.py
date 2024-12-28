@@ -113,6 +113,9 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
         if first_name and last_name:
             name = first_name+" "+last_name
         user_data={"experience":experience,"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
+        
+        user_data["created_by"] = login_user["id"]
+        user_data["created_by_role"] =  login_user["role_id"]
         new_user = AdminUser(**user_data)
         db.add(new_user)
         db.commit()
@@ -154,6 +157,7 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
             return Utility.json_response(status=BAD_REQUEST, message=all_messages.INVALIED_EMAIL, error=[], data={})
        
         user_id=login_user["id"]
+        
         if login_user["role_id"] ==1:
             tenant_id=request.tenant_id
         else:
@@ -216,7 +220,9 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
             user_data["location_id"] = location_id
             user_data["pincode"] = pincode
             user_data["gender"] = gender
-            user_data["date_of_birth"] = date_of_birth 
+            user_data["date_of_birth"] = date_of_birth
+            user_data["created_by"] = login_user["id"]
+            user_data["created_by_role"] =  login_user["role_id"]
             
            
 

@@ -1188,6 +1188,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                 if enquiry_details is not None:
                         enquiry_details.status_id = 2
                 udata =  Utility.model_to_dict(user_data)
+                user_data.created_by = user_id
                 if role_id == 3:
                     user_data.salesman_id = user_id
                 if role_id == 4:
