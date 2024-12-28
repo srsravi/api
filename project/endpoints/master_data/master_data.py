@@ -247,8 +247,8 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
                     CITY1 =  data.get("CITY",""),
                     CITY2 =  data.get("DISTRICT",""),
                     STATE =  data.get("STATE",""),
-                    STD_CODE =  data.get("",""),
-                    PHONE =  data.get("","")
+                    #STD_CODE =  data.get("",""),
+                    #PHONE =  data.get("","")
                     )
                     db.add(new_ifs)
                     db.commit()
