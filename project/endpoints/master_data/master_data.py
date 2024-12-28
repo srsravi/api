@@ -217,18 +217,10 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
        
     try:
         query = db.query(MdIfscCodes)
-        if filter_data.search_string:
-            search = f"%{filter_data.search_string}%"
-            query = query.filter(
-                or_(
-                    #MdIfscCodes.BANK.ilike(search),
-                    MdIfscCodes.IFSC.ilike(search),
-                    #MdIfscCodes.BRANCH.ilike(search),
-                    #MdIfscCodes.CITY1.ilike(search),
-                    #MdIfscCodes.CITY2.ilike(search),
-                    
-                )
-            )
+        search = filter_data.search_string.lower()  # Convert search string to lowercase
+        query = query.filter(
+            func.lower(MdIfscCodes.IFSC) == search.lower()  # Compare lowercased IFSC and search string
+        )
         total_count = query.count()
         ifscode_list =[]
         if total_count <=0:
@@ -279,8 +271,11 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
             "page":filter_data.page,
             "per_page":filter_data.per_page
         }
-        return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")    
-        
+        if total_count>0:
+            return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")    
+        else:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data=response_data,code="") 
+
     except Exception as e:
         print(e)        
         db.rollback()

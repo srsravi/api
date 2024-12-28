@@ -128,7 +128,7 @@ class EditKycSchema(CreateKycSchema):
     md_doc_id:int
 
 class GetIfscCodeSchema(ListRequestBase):
-    search_string: Optional[str] = None 
+    search_string:str 
 
 class ConfigurationListSchema(BaseModel):
 
