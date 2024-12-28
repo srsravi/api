@@ -41,7 +41,7 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
             joinedload(EnquiryModel.enquiry_tenant_details),
             joinedload(EnquiryModel.enquir_status_details),
             joinedload(EnquiryModel.enquir_service_details)
-            )
+            ).filter(EnquiryModel.status_id !=2)
 
         if filter_data.search_string:
             search = f"%{filter_data.search_string}%"
