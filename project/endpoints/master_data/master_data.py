@@ -5,7 +5,6 @@ from ...models.admin_user import AdminUser
 from sqlalchemy.orm import  joinedload
 from datetime import date
 from fastapi.encoders import jsonable_encoder
-
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
 from ...schemas.master_data import DownloadFile
 import re
@@ -35,6 +34,8 @@ from ...library.webSocketConnectionManager import manager
 from fastapi import  Request, HTTPException
 import razorpay
 from fastapi.responses import RedirectResponse
+import requests
+
 router = APIRouter(
     prefix="/masterdata",
     tags=["Master Data"],
@@ -220,36 +221,61 @@ def get_users(filter_data: GetIfscCodeSchema ,db: Session = Depends(get_database
             search = f"%{filter_data.search_string}%"
             query = query.filter(
                 or_(
-                    MdIfscCodes.BANK.ilike(search),
+                    #MdIfscCodes.BANK.ilike(search),
                     MdIfscCodes.IFSC.ilike(search),
-                    MdIfscCodes.BRANCH.ilike(search),
-                    MdIfscCodes.CITY1.ilike(search),
-                    MdIfscCodes.CITY2.ilike(search),
+                    #MdIfscCodes.BRANCH.ilike(search),
+                    #MdIfscCodes.CITY1.ilike(search),
+                    #MdIfscCodes.CITY2.ilike(search),
                     
                 )
             )
         total_count = query.count()
-        sort_column = getattr(MdIfscCodes, filter_data.sort_by, None)
-        if sort_column:
-            
-            if filter_data.sort_order == "desc":
-                query = query.order_by(desc(sort_column))
-            else:
-                query = query.order_by(asc(sort_column))
-        else:
-            query = query.order_by(desc("IFSC"))
+        ifscode_list =[]
+        if total_count <=0:
+            url = f"https://ifsc.razorpay.com/{filter_data.search_string}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    ifscode_list.append(data)
+                    total_count = 1
+                    new_ifs = MdIfscCodes(
+                    BANK = data.get("BANK",""),
+                    IFSC = data.get("IFSC",""),
+                    BRANCH =  data.get("BRANCH",""),
+                    ADDRESS =  data.get("ADDRESS",""),
+                    CITY1 =  data.get("CITY",""),
+                    CITY2 =  data.get("DISTRICT",""),
+                    STATE =  data.get("STATE",""),
+                    STD_CODE =  data.get("",""),
+                    PHONE =  data.get("","")
+                    )
+                    db.add(new_ifs)
+                    db.commit()
+                except ValueError as e:
+                    print(str(e))
 
-        # Apply pagination
-        offset = (filter_data.page - 1) * filter_data.per_page
-        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
-        # Create a paginated response
-        users_list =[]
-        for item in paginated_query:
-            temp_item = Utility.model_to_dict(item)
-            users_list.append(temp_item)
+        else:
+            sort_column = getattr(MdIfscCodes, filter_data.sort_by, None)
+            if sort_column:                
+                if filter_data.sort_order == "desc":
+                    query = query.order_by(desc(sort_column))
+                else:
+                    query = query.order_by(asc(sort_column))
+            else:
+                query = query.order_by(desc("IFSC"))
+
+            # Apply pagination
+            offset = (filter_data.page - 1) * filter_data.per_page
+            paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+            # Create a paginated response
+            
+            for item in paginated_query:
+                temp_item = Utility.model_to_dict(item)
+                ifscode_list.append(temp_item)
         response_data = {
             "total_count":total_count,
-            "list":users_list,
+            "list":ifscode_list,
             "page":filter_data.page,
             "per_page":filter_data.per_page
         }
