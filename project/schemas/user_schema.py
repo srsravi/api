@@ -159,6 +159,12 @@ class UserFilterRequest(ListRequestBase):
     get_kyc_users:Optional[bool] = False
     #accepted_terms: Optional[bool] = None
 
+class UserDetailsRequest(ListRequestBase):
+    
+    tenant_id: Optional[List[int]] = None
+    user_id: int
+
+
 class GetBranchListRequestSchema(ListRequestBase):
       status_ids: Optional[List[int]] = None
 

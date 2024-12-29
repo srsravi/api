@@ -84,6 +84,7 @@ CONFORMATION_ADDED ="Configuration Added  successfully!"
 CUSTOMER_NOT_FOUND="Customer not Found"
 CUSTOMER_NOT_ACTIVE="Customer is not active"
 LOAN_APPLICATION_CREATED="Loan created Successfully"
+AGENT_NOT_FOUND="Agent not Found"
 
 
 

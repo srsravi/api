@@ -25,7 +25,7 @@ from sqlalchemy.orm import  joinedload
 from sqlalchemy import desc, asc
 from sqlalchemy.sql import select, and_, or_, not_,func
 from datetime import date, datetime,timezone,timedelta
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,GetBranchListRequestSchema,PaginatedAdminUserResponse,BranchListResponseSchema,GetUserDetailsReq,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...schemas.user_schema import UserDetailsRequest,UserFilterRequest,GetBranchListRequestSchema,PaginatedAdminUserResponse,BranchListResponseSchema,GetUserDetailsReq,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -576,7 +576,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 db.commit()
 
                 background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
-                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to your email", error=[], data={"user_id":user_obj.id},code="")
+                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to email", error=[], data={"user_id":user_obj.id},code="")
             
             elif  user_obj.status_id == 1:
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
@@ -857,6 +857,61 @@ async def signup_tenant_user(request:TenantSchema,background_tasks: BackgroundTa
         token_data.active=False
         db.commit()
         return Utility.json_response(status=SUCCESS, message="User Registered Successfully", error=[], data=user_data)   
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+    
+
+@router.post("/details", response_model=PaginatedAdminUserResponse, response_description="Fetch Users List")
+async def get_users(filter_data: UserDetailsRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        # if auth_user.get("role_id", -1) not in [1,2,3,4]:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+        
+        query = db.query(AdminUser).options(
+            joinedload(AdminUser.admin_tenant_details),
+            joinedload(AdminUser.role_details),
+            joinedload(AdminUser.status_details),
+            joinedload(AdminUser.country_details),
+            joinedload(AdminUser.state_details),
+            joinedload(AdminUser.location_details),
+            joinedload(AdminUser.admin_tenant_details),
+            
+            
+        ).filter(AdminUser.id==filter_data.user_id )
+        
+        if filter_data.tenant_id:
+            query = query.filter(AdminUser.tenant_id == filter_data.tenant_id)
+        else:
+            if "tenant_id" in auth_user:
+                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+        result = query.one()
+        if result is not None:
+            user_data = Utility.model_to_dict(result)
+            if "country_id" in user_data:
+                user_data["country_details"] = Utility.model_to_dict(result.country_details)
+            if "state_id" in user_data:
+                user_data["state_details"] = Utility.model_to_dict(result.state_details)
+            if "location_id" in user_data:
+                user_data["location_details"] = Utility.model_to_dict(result.location_details)
+            if "role_id" in user_data:
+                user_data["role_details"] = Utility.model_to_dict(result.role_details)
+            if "status_id" in user_data:
+                user_data["status_details"] = Utility.model_to_dict(result.status_details)
+            if "tenant_id" in user_data:
+                user_data["admin_tenant_details"] = Utility.model_to_dict(result.admin_tenant_details)
+            if "password" in user_data:
+                del user_data["password"]
+
+                #file_data = json.loads(user_data["upload_check"])
+                #user_data["upload_check"] = file_data
+            return Utility.json_response(status=SUCCESS, message="", error=[], data=user_data,code="Retrived")
+
+        else:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.AGENT_NOT_FOUND, error=[], data={},code="AGENT_NOT_FOUND")
+
+        
     except Exception as E:
         print(E)
         db.rollback()
