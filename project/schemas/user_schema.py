@@ -189,6 +189,7 @@ class MasterDataResponse(BaseModel):
 
 class AdminUserListResponse(BaseModel):
     id: int
+    tfs_id:Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     name: Optional[str] = None

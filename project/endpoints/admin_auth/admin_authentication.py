@@ -201,10 +201,11 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
         user_data={"experience":experience,"tenant_id":tenant_id,"first_name":first_name,"last_name":last_name, "name":name,"password":password,"email":email,"mobile_no":mobile_no,"role_id":role_id,"status_id":2}
         
         if request.role_id ==4:
+            
             user_data["alternate_mobile_no"] = request.aternate_mobile_no
-            user_data["passport"] = request.passport
-            user_data["aadhaar_card"] = request.aadhaar_card
-            user_data["selfie"] = request.selfie
+            user_data["passport"] = request.passport#.encode("utf-8")
+            user_data["aadhaar_card"] = request.aadhaar_card#.encode("utf-8")
+            user_data["selfie"] = request.selfie#.encode("utf-8")
             user_data["present_address"] = request.present_address
             user_data["present_occupation"] = request.present_occupation
             user_data["employer_name"] = request.employer_name
@@ -213,7 +214,7 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
             user_data["bank_name"] = request.bank_name
             user_data["bank_account_number"] = request.bank_account_number
             user_data["ifsc_code"] = request. ifsc_code
-            user_data["upload_check"] = request.upload_check
+            user_data["upload_check"] = request.upload_check#.encode("utf-8")
             user_data["referrals"] = request.referrals
             user_data["country_id"] = country_id
             user_data["state_id"] = state_id
@@ -254,7 +255,7 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
     except Exception as E:
         print(E)
         db.rollback()
-        return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
+        return Utility.json_response(status=EXCEPTION, message=str(E), error=[], data={})
 
 @router.post("/set-password", response_description="Forgot Password")
 async def reset_password(request: resetPassword,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
@@ -903,7 +904,24 @@ async def get_users(filter_data: UserDetailsRequest,auth_user=Depends(AuthHandle
                 user_data["admin_tenant_details"] = Utility.model_to_dict(result.admin_tenant_details)
             if "password" in user_data:
                 del user_data["password"]
-
+            # if "passport" in user_data:
+            #     if user_data["passport"] is not None:
+            #         #passport = json.loads(user_data["passport"].decode("utf-8"))
+            #         user_data["passport"] = str(user_data["passport"].decode("utf-8"))
+            #         #passport = 
+            # if "upload_check" in user_data:
+            #     if user_data["upload_check"] is not None:
+            #         #passport = json.loads(user_data["passport"].decode("utf-8"))
+            #         user_data["upload_check"] = str(user_data["upload_check"].decode("utf-8"))
+            # if "aadhaar_card" in user_data:
+            #     if user_data["aadhaar_card"] is not None:
+            #         user_data["aadhaar_card"] = str(user_data["aadhaar_card"].decode("utf-8"))
+            
+            # if "selfie" in user_data:
+            #     if user_data["selfie"] is not None:
+            #         user_data["selfie"] = str(user_data["selfie"].decode("utf-8"))
+                     
+                
                 #file_data = json.loads(user_data["upload_check"])
                 #user_data["upload_check"] = file_data
             return Utility.json_response(status=SUCCESS, message="", error=[], data=user_data,code="Retrived")

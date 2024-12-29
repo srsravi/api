@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer,Float, String, Text, DateTime, Date, ForeignKey
+from sqlalchemy import Column,LargeBinary, Integer,Float, String, Text, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 #from project.database.database import Base
@@ -14,7 +14,7 @@ class AdminUser(BaseModel):
     first_name = Column(String(50))
     last_name = Column(String(50))
     name = Column(String(150), default=None)
-    password = Column(Text)
+    password = Column(Text, default=None)
     login_token = Column(Text)
     token = Column(Text)
     otp=Column(String(61))
@@ -24,9 +24,9 @@ class AdminUser(BaseModel):
     gender = Column(String(15),default=None)
     
 
-    passport = Column(Text,default=None)
-    aadhaar_card  = Column(Text,default= None)
-    selfie = Column(Text,default=None)
+    passport = Column(Text, default="")
+    aadhaar_card  = Column(Text, default="")
+    selfie = Column(Text, default="")
 
     country_id = Column(Integer, ForeignKey('md_countries.id'), nullable=True,default=None)
     country_details = relationship('MdCountries', back_populates='country_users')
@@ -50,7 +50,7 @@ class AdminUser(BaseModel):
     bank_name = Column(Text,default=None)
     bank_account_number = Column(Text,default=None)
     ifsc_code = Column(Text,default=None)
-    upload_check = Column(Text,default=None)
+    upload_check = Column(Text, default="")
     referrals = Column(Text,default=None)
 
 
