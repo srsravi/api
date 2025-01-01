@@ -37,11 +37,20 @@ router = APIRouter(
 async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
     
     try:
+        today = datetime.today()
         query = db.query(EnquiryModel).options(
             joinedload(EnquiryModel.enquiry_tenant_details),
             joinedload(EnquiryModel.enquir_status_details),
             joinedload(EnquiryModel.enquir_service_details)
             ).filter(EnquiryModel.status_id !=2)
+        
+        query = query.filter(or_(
+            (EnquiryModel.status_id == 1) & (EnquiryModel.followupdate ==None),
+            (EnquiryModel.followupdate !=None) & (today >=EnquiryModel.followupdate),
+            
+        ))
+        
+
 
         if filter_data.search_string:
             search = f"%{filter_data.search_string}%"
