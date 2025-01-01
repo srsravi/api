@@ -658,3 +658,7 @@ class ApplyLoanSchema(BaseModel):
     service_type_id:int
     user_id:int
     tenant_id:Optional[int] =1
+
+class EnquiryDetailsSchema(BaseModel):
+    enquiry_id:int
+    tenant_id:Optional[int] =1    

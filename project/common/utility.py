@@ -259,6 +259,9 @@ class Utility:
             code = "TFS-ENQ"
         elif role_id==5:
             code = "TFS-M"
+        elif role_id=="LOAN":
+            code = f'TFS-LOAN-{int(time.time())}-{random.randint(1000, 9999999)}'
+             
         return code
     # def inactive_previous_tokens(db =None,category:str='',user_id:int=0):
     #     try:

@@ -233,7 +233,7 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                             db.rollback()
                             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
                     else:
-                        new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                        new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=service_type_id,tenant_id=tenant_id)
                         db.add(new_lead)
                 if configuration is not None:
                     if status_id ==2 and  service_type_id !=1 and new_lead is not None:
@@ -364,7 +364,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}", service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
@@ -525,7 +525,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                new_lead =  LoanapplicationModel(tfs_id=f"{Utility.generate_tfs_code("LOAN")}",customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
@@ -848,7 +848,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                         db.commit()
                     else:        
                         return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ACCOUNT_LOCKED, error=[], data={})
-                login_token = AuthHandler().encode_token(user_dict)
+                login_token = AuthHandler().encode_token(user_dict,120)
                 if not login_token:
                     # return Utility.json_response(status=FAIL, message=all_messages.INVALIED_CREDENTIALS, error=[], data={})
 

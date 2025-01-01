@@ -3,8 +3,8 @@ from datetime import datetime
 from ...models.user_model import CustomerModal
 from ...models.master_data_models import MdUserRole,MdUserStatus,MdCountries
 
-from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,PaginatedBeneficiaryResponse,getCustomerDetails,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from . import APIRouter, Utility, SUCCESS, FAIL, WEB_URL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
+from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,EnquiryDetailsSchema,getCustomerDetails,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 from ...schemas.user_schema import UpdateKycStatus
 from ...models.user_model import NotificationModel
 
@@ -25,6 +25,8 @@ from sqlalchemy.orm import  joinedload
 from ...library.webSocketConnectionManager import manager
 from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel,CustomerDetailsModel
 from typing import Dict
+from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptionPlansModel
+
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -122,6 +124,24 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+@router.post("/enquiry/details", response_description="enquiry details")
+async def get_enquiry(filter_data: EnquiryDetailsSchema,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    
+    try:
+        today = datetime.today()
+        query = db.query(EnquiryModel).options(
+            joinedload(EnquiryModel.enquiry_tenant_details),
+            joinedload(EnquiryModel.enquir_status_details),
+            joinedload(EnquiryModel.enquir_service_details)
+            ).filter(EnquiryModel.id ==filter_data.enquiry_id)
+        paginated_query = query.one()
+        # Create a paginated response
+        if paginated_query is not None:
+            response_data = Utility.model_to_dict(paginated_query)
+        return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")
+    except Exception as E:
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
 
 @router.post("/update-profile", response_description="Update Profile")
 async def update_profile(request: UpdateProfile,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
@@ -522,6 +542,144 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+#create-update-customer-details
+@router.post("/create-update-customer-details",response_model=UserListResponse, response_description="Get User Details")
+async def update_customer_details( request: Dict, background_tasks: BackgroundTasks, auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+       
+        role_id = auth_user["role_id"]
+        tenant_id = 1
+        if "tenant_id"  in auth_user:
+            tenant_id = auth_user["tenant_id"]
+        enquiry_id = request["enquiry_id"]
+        #loan_application_form_id = request["loan_application_form_id"]
+        query = db.query(EnquiryModel).filter(EnquiryModel.id == enquiry_id)
+        enquiry_data = query.one()
+        #CustomerModal
+        new_customer = CustomerModal(                                    
+                                      first_name=enquiry_data.name,
+                                      last_name=enquiry_data.name,
+                                      name=enquiry_data.name,
+                                      role_id =5,
+                                      status_id=2,
+                                      email=enquiry_data.email,
+                                      mobile_no=enquiry_data.mobile_no,
+                                      password=str(Utility.uuid()),
+                                      tenant_id=tenant_id,
+                                      service_type_id=request.get("service_type_id",None),
+                                      )
+        db.add(new_customer)
+        db.commit()
+        enquiry_data.status_id =2
+        if new_customer.id:
+            mail_data = {"body":"Welcome to TFS"}
+            otp =str(Utility.generate_otp())
+            category ="SIGNUP_CUSTOMER"
+            customer_id = new_customer.id
+            new_customer.status_id = 2
+            new_customer.tfs_id = f"{Utility.generate_tfs_code(5)}{new_customer.id}"
+            user_dict={"user_id":new_customer.id,"catrgory":category,"otp":otp}
+            token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"invite_role_id":5,"email":new_customer.email,"name":new_customer.name},43200)
+            user_dict["token"]=token
+            user_dict["ref_id"]=new_customer.id
+            db.add(tokensModel(**user_dict))
+            #db.query(CustomerModal).filter(CustomerModal.email == user_data.email).update({"status_id": 2}, synchronize_session=False)
+            db.commit()
+            link = f'''{WEB_URL}set-customer-password?token={token}&user_id={new_customer.id}'''
+            background_tasks.add_task(Email.send_mail, recipient_email=[new_customer.email], subject="Welcome to TFS", template='add_user.html',data={"name":new_customer.name,"link":link})
+            
+            dbcursor =  CustomerDetailsModel(customer_id=customer_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
+            
+            configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==request.get("service_type_id",None),ServiceConfigurationModel.tenant_id==tenant_id).first()
+            new_lead =  LoanapplicationModel(customer_id=customer_id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
+            db.add(new_lead)
+            if configuration is not None: 
+                new_lead.salesman_id = configuration.user_id
+                new_customer.salesman_id = configuration.user_id    
+            if auth_user["role_id"] ==3:
+                dbcursor.salesman_id = auth_user["id"]
+                new_lead.salesman_id  = auth_user["id"]
+                new_customer.salesman_id = auth_user["id"]  
+            if auth_user["role_id"] ==4:
+                dbcursor.agent_id = auth_user["id"]
+            db.add(dbcursor)
+            db.commit()
+        
+        if dbcursor is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+        
+        # if request.get("date_of_birth",False):
+        #     dbcursor.date_of_birth = request["date_of_birth"]
+
+        # if request.get("alternate_mobile_no",False):
+        #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
+
+        
+        dbcursor.service_type_id = request.get("service_type_id",None)
+        dbcursor.loanAmount = request.get("loanAmount",None)
+        dbcursor.profession_type_id = request.get("profession_type_id",None)
+        dbcursor.lead_sourse_id = request.get("lead_sourse_id",None)
+        dbcursor.profession_sub_type_id = request.get("profession_sub_type_id",None)
+        dbcursor.companyName = request.get("companyName",'')
+        dbcursor.designation = request.get("designation",'')
+        dbcursor.totalExperience = request.get("totalExperience",None)
+        dbcursor.present_organization_years = request.get("present_organization_years",None)
+        dbcursor.workLocation = request.get("workLocation",'')
+        dbcursor.grossSalary = request.get("grossSalary",None)
+        dbcursor.netSalary = request.get("netSalary",None)
+        dbcursor.otherIncome = request.get("otherIncome","No")
+        dbcursor.other_income_list ='[]'
+        if request.get("otherIncome","No")=="Yes":
+            dbcursor.other_income_list = request.get("other_income_list","")
+        dbcursor.Obligations = request.get("Obligations","No")
+        dbcursor.all_obligations ='[]'
+        dbcursor.other_obligation = "[]"
+        if request.get("Obligations","No")=="Yes":
+            dbcursor.all_obligations = request.get("all_obligations","")
+            dbcursor.other_obligation = request.get("all_obligations","")
+        
+        dbcursor.obligations_per_month = request.get("obligations_per_month",None)
+
+
+        #SENP
+        dbcursor.number_of_years=request.get("number_of_years",'')
+        dbcursor.location=request.get("location",'')
+        dbcursor.last_turnover_year=request.get("last_turnover_year",'')
+        dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
+        dbcursor.last_year_itr=request.get("last_year_itr",'')
+        dbcursor.lastYearITRamount=request.get("lastYearITRamount",None)
+        dbcursor.current_turnover_year=request.get("current_turnover_year",'')
+        dbcursor.current_year_turnover_amount=request.get("current_year_turnover_amount",'')
+        dbcursor.current_year_itr=request.get("current_year_itr",'')
+        dbcursor.presentYearITRamount=request.get("presentYearITRamount",'')
+        dbcursor.avg_income_per_month=request.get("avg_income_per_month",'')
+
+        dbcursor.eligible=request.get("eligible","No")
+        dbcursor.fdir=request.get("fdir","")
+        dbcursor.description=request.get("description",None)
+        dbcursor.loan_eligible_type= None
+        dbcursor.loan_eligible_amount= None
+        if request.get("eligible","No")=="Yes":
+            dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
+            dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+
+        #SEP Column fields
+        #income_type_id
+        dbcursor.income_type_id = request.get("income_type_id",None)
+        dbcursor.total_obligation_amount_per_month = request.get("total_obligation_amount_per_month",None)
+        # if request.get("eligible","No")=="Yes":
+        #     dbcursor.status_id =2
+
+        db.commit()
+        return Utility.json_response(status=SUCCESS, message="Details  are updated successfully", error=[], data=request,code="")
+
+    except Exception as E:
+        print("ERROR")
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+
 @router.post("/update-customer-details",response_model=UserListResponse, response_description="Get User Details")
 async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
@@ -912,7 +1070,7 @@ async def apply_loan(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().au
             # if customer.status_id !=3:
             #     return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
             
-            new_lead =  LoanapplicationModel(customer_id=user_id,service_type_id=service_type_id,tenant_id=tenant_id)
+            new_lead =  LoanapplicationModel(customer_id=user_id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=service_type_id,tenant_id=tenant_id)
             if auth_user["role_id"] ==3:
                 new_lead.salesman_id = auth_user["id"]
             if auth_user["role_id"] ==4:
