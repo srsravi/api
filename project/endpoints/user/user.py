@@ -534,7 +534,6 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
             #get salesman details from Adminuser Modal
             pass
         
-        
         return Utility.json_response(status=SUCCESS, message="Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:
@@ -683,12 +682,18 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
 @router.post("/update-customer-details",response_model=UserListResponse, response_description="Get User Details")
 async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
+        
        
         role_id = auth_user["role_id"]
         tenant_id = 1
         if "tenant_id"  in auth_user:
             tenant_id = auth_user["tenant_id"]
         loan_application_form_id = request["loan_application_form_id"]
+        customer = db.query(CustomerModal).filter(CustomerModal.id == loan_application_form_id).one()
+        if customer is None:
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        
+
         query = db.query(CustomerDetailsModel).filter(CustomerDetailsModel.customer_id == loan_application_form_id)
         dbcursor = query.first()
        
@@ -702,7 +707,8 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
             db.commit()
         
         if dbcursor is None:
-            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.LOAN_APPL_FORM_NOT_FOUND, error=[], data={},code="LOAN_APPL_FORM_NOT_FOUND")
+            return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        
         print(dbcursor.id) 
         # if request.get("date_of_birth",False):
         #     dbcursor.date_of_birth = request["date_of_birth"]
@@ -710,7 +716,7 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
         # if request.get("alternate_mobile_no",False):
         #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
 
-        
+        customer.date_of_birth = request.get("date_of_birth",None)
         dbcursor.service_type_id = request.get("service_type_id",None)
         dbcursor.loanAmount = request.get("loanAmount",None)
         dbcursor.profession_type_id = request.get("profession_type_id",None)
