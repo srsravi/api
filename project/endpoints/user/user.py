@@ -641,7 +641,7 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
 
 
         #SENP
-        dbcursor.number_of_years=request.get("number_of_years",'')
+        dbcursor.number_of_years=request.get("number_of_years",0.0)
         dbcursor.location=request.get("location",'')
         dbcursor.last_turnover_year=request.get("last_turnover_year",'')
         dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')

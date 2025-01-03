@@ -166,8 +166,8 @@ class CustomerDetailsModel(BaseModel):
     #SENP Columns fields
     #company_name = Column(String(55), default='') #already exists
     #designation = Column(String(55), default='') #already exists
-    number_of_years = Column(Float, default='')
-    location = Column(String(55), default='')
+    number_of_years = Column(Float, default='', nullable=True)
+    location = Column(String(55), default='', nullable=True)
     last_turnover_year = Column(String(55), default='')
     last_year_turnover_amount = Column(Float, default=None)
     last_year_itr =  Column(Float, default=None)
