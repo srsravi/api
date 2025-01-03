@@ -2,12 +2,14 @@ from datetime import datetime, timezone,timedelta
 from datetime import datetime
 from ...models.user_model import CustomerModal
 from ...models.master_data_models import MdUserRole,MdUserStatus,MdCountries
-
+from fastapi import FastAPI, HTTPException
+import requests
+from requests.auth import HTTPBasicAuth
 from . import APIRouter, Utility, SUCCESS, FAIL, WEB_URL, EXCEPTION ,INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
-from ...schemas.user_schema import UpdatePassword,UserFilterRequest,ApplyLoanSchema,EnquiryDetailsSchema,getCustomerDetails,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...schemas.user_schema import UpdatePassword,OrderIDRequest,UserFilterRequest,ApplyLoanSchema,EnquiryDetailsSchema,getCustomerDetails,getloanApplicationDetails,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
 from ...schemas.user_schema import UpdateKycStatus
 from ...models.user_model import NotificationModel
-
+#import pytz
 import re
 from ...constant import messages as all_messages
 from ...common.mail import Email
@@ -1165,3 +1167,29 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
+@router.post("/check-payment-status/")
+async def check_payment_status(order: OrderIDRequest, auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    order_id = order.order_id
+    url = f"https://api.razorpay.com/v1/orders/{order_id}"
+    subscription = db.query(SubscriptionModel).filter(SubscriptionModel.razorpay_order_id==order_id).one()
+    if subscription is None:
+        return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data={})
+    
+    response = requests.get(url, auth=HTTPBasicAuth("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
+    if response.status_code == 200:
+        order_data = response.json()
+        if order_data["status"]=="paid":
+            customer = db.query(CustomerModal).filter(CustomerModal.id==subscription.customer_id)
+            subscription.status="paid"
+            unix_timestamp = order_data["payment"]["captured_at"]
+            #india_tz = pytz.timezone('Asia/Kolkata')
+            #date_time = datetime.fromtimestamp(unix_timestamp, india_tz)
+            date_time = datetime.utcfromtimestamp(unix_timestamp)
+            subscription.start_date = date_time
+            db.commit()
+            
+        data= {"order_id": order_data["id"], "status": order_data["status"]}
+        return Utility.json_response(status=SUCCESS, message="", error=[], data=data)
+    else:
+        return Utility.json_response(status=INTERNAL_ERROR, message="Failed to fetch order details", error=[], data={})
+        #raise HTTPException(status_code=response.status_code, detail="Failed to fetch order details")

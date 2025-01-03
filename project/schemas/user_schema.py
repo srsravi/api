@@ -661,4 +661,7 @@ class ApplyLoanSchema(BaseModel):
 
 class EnquiryDetailsSchema(BaseModel):
     enquiry_id:int
-    tenant_id:Optional[int] =1    
+    tenant_id:Optional[int] =1
+
+class OrderIDRequest(BaseModel):
+    order_id: str
