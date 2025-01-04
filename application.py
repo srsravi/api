@@ -92,7 +92,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     },status_code=422)
 
-origins = ["*"]
+origins = ["*","http://192.168.0.143:3000"]
 
 app.add_middleware(
     CORSMiddleware,
