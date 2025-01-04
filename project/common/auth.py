@@ -30,7 +30,7 @@ class AuthHandler:
             return x.isoformat()
         return x #TypeError("Type not serializable")
     
-    def encode_token(self, user_dict,minutes=60 ):
+    def encode_token(self, user_dict,minutes=10000 ):
         payload = {
         'exp': datetime.now(timezone.utc) + timedelta(minutes=minutes),
         'iat': datetime.now(timezone.utc),

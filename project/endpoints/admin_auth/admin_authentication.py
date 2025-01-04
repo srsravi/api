@@ -414,7 +414,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                         db.commit()
                     else:        
                         return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ACCOUNT_LOCKED, error=[], data={})
-                login_token = AuthHandler().encode_token(user_dict)
+                login_token = AuthHandler().encode_token(user_dict, 1200)
                 if not login_token:
                     # return Utility.json_response(status=FAIL, message=all_messages.INVALIED_CREDENTIALS, error=[], data={})
 
