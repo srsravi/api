@@ -978,20 +978,22 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
             joinedload(LoanapplicationModel.created_by_details),
             joinedload(LoanapplicationModel.status_details),
             
-        )
+        )#.join(LoanapplicationModel.customer_details)
         if(auth_user["role_id"] ==5):
             query = query.filter(LoanapplicationModel.customer_id==auth_user["id"])
         
-
+        
         if filter_data.search_string:
             search = f"%{filter_data.search_string}%"
             query = query.filter(
                 or_(
-                    LoanapplicationModel.customer_details.name.ilike(search),
-                    LoanapplicationModel.customer_details.email.ilike(search),
+                    LoanapplicationModel.tfs_id.ilike(search),
+                    #LoanapplicationModel.customer_details.name.ilike(search),
+                    #LoanapplicationModel.customer_details.email.ilike(search),
                     
                 )
             )
+         
         if filter_data.tenant_id:
             query = query.filter(LoanapplicationModel.tenant_id.in_(filter_data.tenant_id))
         
