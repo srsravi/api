@@ -35,6 +35,7 @@ from fastapi import  Request, HTTPException
 import razorpay
 from fastapi.responses import RedirectResponse
 import requests
+from ...aploger import AppLogger
 
 router = APIRouter(
     prefix="/masterdata",
@@ -437,7 +438,7 @@ async def upload_file(request:ConfigurationListSchema,auth_user=Depends(AuthHand
         print(E)        
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
 
-razorpay_client = razorpay.Client(auth=("your_key_id", "your_key_secret"))
+razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 @router.post("/payment-webhook")
 async def payment_webhook(request: Request):
     webhook_data = await request.body()
@@ -446,33 +447,44 @@ async def payment_webhook(request: Request):
     # Verify the webhook signature
     try:
         razorpay_client.utility.verify_webhook_signature(webhook_data, signature, "your_webhook_secret")
-    except razorpay.errors.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-
-    # Parse the event data
-    data = json.loads(webhook_data)
-    event = data['event']
-    payload = data['payload']['payment']
-    print(payload)
-    if event == "payment.captured":
-        # Handle success case (successful payment)
-        payment_id = payload['id']
-        order_id = payload['order_id']
-        # Redirect user or update your database
-        print(f"Payment Success! Payment ID: {payment_id}, Order ID: {order_id}")
-        return RedirectResponse(url="https://yourwebsite.com/payment-success")
-        return {"message": "Payment Success", "payment_id": payment_id, "order_id": order_id}
     
-    elif event == "payment.failed":
-        # Handle failure case (failed payment)
-        payment_id = payload['id']
-        order_id = payload['order_id']
-        # Handle failure
-        print(f"Payment Failed! Payment ID: {payment_id}, Order ID: {order_id}")
-        return RedirectResponse(url="https://yourwebsite.com/payment-fail")
-        # return {"message": "Payment Failed", "payment_id": payment_id, "order_id": order_id}
+        # Parse the event data
+        data = json.loads(webhook_data)
+        event = data['event']
+        payload = data['payload']['payment']
+        print(payload)
+        if event == "payment.captured":
+            # Handle success case (successful payment)
+            payment_id = payload['id']
+            order_id = payload['order_id']
+            # Redirect user or update your database
+            json_string = json.dumps(payload)
+            AppLogger.info(f"Payment: {json_string}")
+            print(f"Payment Success! Payment ID: {payment_id}, Order ID: {order_id}")
+            AppLogger.info(f"Payment Failed! Payment ID: {payment_id}, Order ID: {order_id}")
+            return RedirectResponse(url="https://yourwebsite.com/payment-success")
+            #return {"message": "Payment Success", "payment_id": payment_id, "order_id": order_id}
+        
+        elif event == "payment.failed":
+            # Handle failure case (failed payment)
+            payment_id = payload['id']
+            order_id = payload['order_id']
+            json_string = json.dumps(payload)
+            AppLogger.info(f"Payment: {json_string}")
+            # Handle failure
+            AppLogger.info(f"Payment: Failed! Payment ID: {payment_id}, Order ID: {order_id}")
+            print(f"Payment Failed! Payment ID: {payment_id}, Order ID: {order_id}")
+            return RedirectResponse(url="https://yourwebsite.com/payment-fail")
+            # return {"message": "Payment Failed", "payment_id": payment_id, "order_id": order_id}
 
-    return {"message": "OK"}
+        return {"message": "OK"}
+    except razorpay.errors.SignatureVerificationError:
+        AppLogger.error(f"Payment Error Invalid signature")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    except Exception as e:
+        AppLogger.error(f"Payment Error: ${str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 
