@@ -726,7 +726,8 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
                     AdminUser.first_name.ilike(search),
                     AdminUser.last_name.ilike(search),
                     AdminUser.email.ilike(search),
-                    AdminUser.mobile_no.ilike(search)
+                    AdminUser.mobile_no.ilike(search),
+                    AdminUser.tfs_id.ilike(search)
                 )
             )
         if filter_data.tenant_id:

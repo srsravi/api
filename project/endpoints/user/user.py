@@ -28,7 +28,7 @@ from ...library.webSocketConnectionManager import manager
 from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel,CustomerDetailsModel
 from typing import Dict
 from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptionPlansModel
-
+from ...aploger import AppLogger
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -643,7 +643,10 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
 
 
         #SENP
-        dbcursor.number_of_years=request.get("number_of_years",0.0)
+        
+        # if request.get("number_of_years",0)>0:
+        #     dbcursor.number_of_years=request.get("number_of_years",None)
+
         dbcursor.location=request.get("location",'')
         dbcursor.last_turnover_year=request.get("last_turnover_year",'')
         dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
@@ -746,7 +749,9 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
 
 
         #SENP
-        dbcursor.number_of_years=request.get("number_of_years",'')
+        # if request.get("number_of_years",0)>0:
+        #     dbcursor.number_of_years=request.get("number_of_years",None)
+
         dbcursor.location=request.get("location",'')
         dbcursor.last_turnover_year=request.get("last_turnover_year",'')
         dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
@@ -779,6 +784,7 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
 
     except Exception as E:
         print("ERROR")
+        AppLogger.error(f"update customer details {str(E)}")
         print(E)
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -916,7 +922,9 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
 
 
         #SENP
-        dbcursor.number_of_years=request.get("number_of_years",'')
+        # if request.get("number_of_years",0)>0:
+        #     dbcursor.number_of_years=request.get("number_of_years",None)
+
         dbcursor.location=request.get("location",'')
         dbcursor.last_turnover_year=request.get("last_turnover_year",'')
         dbcursor.last_year_turnover_amount=request.get("last_year_turnover_amount",'')
@@ -949,6 +957,7 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
 
     except Exception as E:
         print(E)
+        AppLogger.error(f"update loan application details {str(E)}")
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1169,27 +1178,32 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
 
 @router.post("/check-payment-status/")
 async def check_payment_status(order: OrderIDRequest, auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
-    order_id = order.order_id
-    url = f"https://api.razorpay.com/v1/orders/{order_id}"
-    subscription = db.query(SubscriptionModel).filter(SubscriptionModel.razorpay_order_id==order_id).one()
-    if subscription is None:
-        return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data={})
-    
-    response = requests.get(url, auth=HTTPBasicAuth("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
-    if response.status_code == 200:
-        order_data = response.json()
-        if order_data["status"]=="paid":
-            customer = db.query(CustomerModal).filter(CustomerModal.id==subscription.customer_id)
-            subscription.status="paid"
-            unix_timestamp = order_data["payment"]["captured_at"]
-            #india_tz = pytz.timezone('Asia/Kolkata')
-            #date_time = datetime.fromtimestamp(unix_timestamp, india_tz)
-            date_time = datetime.utcfromtimestamp(unix_timestamp)
-            subscription.start_date = date_time
-            db.commit()
-            
-        data= {"order_id": order_data["id"], "status": order_data["status"]}
-        return Utility.json_response(status=SUCCESS, message="", error=[], data=data)
-    else:
-        return Utility.json_response(status=INTERNAL_ERROR, message="Failed to fetch order details", error=[], data={})
-        #raise HTTPException(status_code=response.status_code, detail="Failed to fetch order details")
+    try:
+        order_id = order.order_id
+        url = f"https://api.razorpay.com/v1/orders/{order_id}"
+        subscription = db.query(SubscriptionModel).filter(SubscriptionModel.razorpay_order_id==order_id).one()
+        if subscription is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Not Found", error=[], data={})
+        
+        response = requests.get(url, auth=HTTPBasicAuth("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
+        if response.status_code == 200:
+            order_data = response.json()
+            if order_data["status"]=="paid":
+                customer = db.query(CustomerModal).filter(CustomerModal.id==subscription.customer_id)
+                subscription.status="paid"
+                unix_timestamp = order_data["payment"]["captured_at"]
+                #india_tz = pytz.timezone('Asia/Kolkata')
+                #date_time = datetime.fromtimestamp(unix_timestamp, india_tz)
+                date_time = datetime.utcfromtimestamp(unix_timestamp)
+                subscription.start_date = date_time
+                db.commit()
+                
+            data= {"order_id": order_data["id"], "status": order_data["status"]}
+            return Utility.json_response(status=SUCCESS, message="", error=[], data=data)
+        else:
+            return Utility.json_response(status=INTERNAL_ERROR, message="Failed to fetch order details", error=[], data={})
+            #raise HTTPException(status_code=response.status_code, detail="Failed to fetch order details")
+    except Exception as E:
+        print(E)
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
