@@ -615,7 +615,7 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
         # if request.get("alternate_mobile_no",False):
         #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
 
-        
+        dbcursor.sepType = request.get("sepType",None)
         dbcursor.service_type_id = request.get("service_type_id",None)
         dbcursor.loanAmount = request.get("loanAmount",None)
         dbcursor.profession_type_id = request.get("profession_type_id",None)
@@ -722,6 +722,7 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
         #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
 
         customer.date_of_birth = request.get("date_of_birth",None)
+        dbcursor.sepType = request.get("sepType",None)
         dbcursor.service_type_id = request.get("service_type_id",None)
         dbcursor.loanAmount = request.get("loanAmount",None)
         dbcursor.profession_type_id = request.get("profession_type_id",None)
@@ -895,6 +896,7 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
 
         
+        dbcursor.sepType = request.get("sepType",None)
         dbcursor.service_type_id = request.get("service_type_id",None)
         dbcursor.loanAmount = request.get("loanAmount",None)
         dbcursor.profession_type_id = request.get("profession_type_id",None)

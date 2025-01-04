@@ -149,7 +149,7 @@ class CustomerDetailsModel(BaseModel):
     
     profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"),nullable=True, default=None, unique=False)
     customer_profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="customer_profession_sub_type")
-    
+    sepType = Column(String(20), default=None,nullable=True)
     #Salaried column fields
     companyName = Column(String(55), default='',nullable=True)
     designation = Column(String(55), default='' ,nullable=True)
@@ -252,7 +252,7 @@ class LoanapplicationModel(BaseModel):
     
     profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"),nullable=True, default=None, unique=False)
     profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="lead_profession_sub_type")
-    
+    sepType = Column(String(20), default=None,nullable=True,)
     #Salaried column fields
     companyName = Column(String(55), default='',nullable=True)
     designation = Column(String(55), default='' ,nullable=True)
