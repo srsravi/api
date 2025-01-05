@@ -720,7 +720,7 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
 
         # if request.get("alternate_mobile_no",False):
         #     dbcursor.alternate_mobile_no = request["alternate_mobile_no"]
-
+     
         customer.date_of_birth = request.get("date_of_birth",None)
         dbcursor.sepType = request.get("sepType",None)
         dbcursor.service_type_id = request.get("service_type_id",None)
@@ -750,8 +750,9 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
 
 
         #SENP
-        # if request.get("number_of_years",0)>0:
-        #     dbcursor.number_of_years=request.get("number_of_years",None)
+        
+        if request.get("number_of_years",0):
+            dbcursor.number_of_years= request.get("number_of_years",0) #round(float(request.get("number_of_years",0)), 2)
 
         dbcursor.location=request.get("location",'')
         dbcursor.last_turnover_year=request.get("last_turnover_year",'')

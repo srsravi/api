@@ -1,8 +1,8 @@
-"""Changes
+"""Init
 
-Revision ID: 508b9193513a
+Revision ID: 1bd73af48795
 Revises: 
-Create Date: 2024-12-25 13:24:05.567044
+Create Date: 2025-01-05 10:32:41.368419
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '508b9193513a'
+revision: str = '1bd73af48795'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -405,6 +405,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_admin_notificatuions_user_id'), 'admin_notificatuions', ['user_id'], unique=False)
     op.create_table('application_details',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('tfs_id', sa.String(length=20), nullable=True),
     sa.Column('customer_id', sa.Integer(), nullable=True),
     sa.Column('tenant_id', sa.Integer(), nullable=True),
     sa.Column('service_type_id', sa.Integer(), nullable=True),
@@ -413,6 +414,7 @@ def upgrade() -> None:
     sa.Column('lead_sourse_id', sa.Integer(), nullable=True),
     sa.Column('profession_type_id', sa.Integer(), nullable=True),
     sa.Column('profession_sub_type_id', sa.Integer(), nullable=True),
+    sa.Column('sepType', sa.String(length=20), nullable=True),
     sa.Column('companyName', sa.String(length=55), nullable=True),
     sa.Column('designation', sa.String(length=55), nullable=True),
     sa.Column('totalExperience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
@@ -424,17 +426,17 @@ def upgrade() -> None:
     sa.Column('Obligations', sa.String(length=6), nullable=True, comment='Obligations'),
     sa.Column('other_income_list', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
     sa.Column('obligations_per_month', sa.Integer(), nullable=True),
-    sa.Column('number_of_years', sa.Float(), nullable=True),
+    sa.Column('number_of_years', sa.Integer(), nullable=True),
     sa.Column('location', sa.String(length=55), nullable=True),
     sa.Column('last_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('last_year_turnover_amount', sa.Float(), nullable=True),
-    sa.Column('last_year_itr', sa.Float(), nullable=True),
-    sa.Column('lastYearITRamount', sa.Float(), nullable=True),
+    sa.Column('last_year_turnover_amount', sa.Integer(), nullable=True),
+    sa.Column('last_year_itr', sa.Integer(), nullable=True),
+    sa.Column('lastYearITRamount', sa.Integer(), nullable=True),
     sa.Column('current_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('current_year_turnover_amount', sa.Float(), nullable=True),
-    sa.Column('current_year_itr', sa.Float(), nullable=True),
-    sa.Column('presentYearITRamount', sa.Float(), nullable=True),
-    sa.Column('avg_income_per_month', sa.Float(), nullable=True),
+    sa.Column('current_year_turnover_amount', sa.Integer(), nullable=True),
+    sa.Column('current_year_itr', sa.Integer(), nullable=True),
+    sa.Column('presentYearITRamount', sa.Integer(), nullable=True),
+    sa.Column('avg_income_per_month', sa.Integer(), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
     sa.Column('all_obligations', sa.Text(), nullable=True),
@@ -446,7 +448,7 @@ def upgrade() -> None:
     sa.Column('loan_approved_by', sa.Integer(), nullable=True),
     sa.Column('eligible', sa.String(length=5), nullable=True),
     sa.Column('loan_eligible_type', sa.Integer(), nullable=True),
-    sa.Column('loan_eligible_amount', sa.Float(), nullable=True),
+    sa.Column('loan_eligible_amount', sa.Integer(), nullable=True),
     sa.Column('fdir', sa.Text(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True, comment='description'),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -474,6 +476,7 @@ def upgrade() -> None:
     sa.Column('lead_sourse_id', sa.Integer(), nullable=True),
     sa.Column('profession_type_id', sa.Integer(), nullable=True),
     sa.Column('profession_sub_type_id', sa.Integer(), nullable=True),
+    sa.Column('sepType', sa.String(length=20), nullable=True),
     sa.Column('companyName', sa.String(length=55), nullable=True),
     sa.Column('designation', sa.String(length=55), nullable=True),
     sa.Column('totalExperience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
@@ -485,21 +488,21 @@ def upgrade() -> None:
     sa.Column('Obligations', sa.String(length=6), nullable=True, comment='Obligations'),
     sa.Column('other_income_list', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
     sa.Column('obligations_per_month', sa.Integer(), nullable=True),
-    sa.Column('number_of_years', sa.Float(), nullable=True),
+    sa.Column('number_of_years', sa.Integer(), nullable=True),
     sa.Column('location', sa.String(length=55), nullable=True),
     sa.Column('last_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('last_year_turnover_amount', sa.Float(), nullable=True),
-    sa.Column('last_year_itr', sa.Float(), nullable=True),
-    sa.Column('lastYearITRamount', sa.Float(), nullable=True),
+    sa.Column('last_year_turnover_amount', sa.Integer(), nullable=True),
+    sa.Column('last_year_itr', sa.Integer(), nullable=True),
+    sa.Column('lastYearITRamount', sa.Integer(), nullable=True),
     sa.Column('current_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('current_year_turnover_amount', sa.Float(), nullable=True),
-    sa.Column('current_year_itr', sa.Float(), nullable=True),
-    sa.Column('presentYearITRamount', sa.Float(), nullable=True),
-    sa.Column('avg_income_per_month', sa.Float(), nullable=True),
+    sa.Column('current_year_turnover_amount', sa.Integer(), nullable=True),
+    sa.Column('current_year_itr', sa.Integer(), nullable=True),
+    sa.Column('presentYearITRamount', sa.Integer(), nullable=True),
+    sa.Column('avg_income_per_month', sa.Integer(), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
     sa.Column('all_obligations', sa.Text(), nullable=True),
-    sa.Column('total_obligation_amount_per_month', sa.Float(), nullable=True),
+    sa.Column('total_obligation_amount_per_month', sa.Integer(), nullable=True),
     sa.Column('coapplicant_data', sa.Text(), nullable=True, comment='Json Stringify data'),
     sa.Column('agent_id', sa.Integer(), nullable=True),
     sa.Column('salesman_id', sa.Integer(), nullable=True),
@@ -507,7 +510,7 @@ def upgrade() -> None:
     sa.Column('loan_approved_by', sa.Integer(), nullable=True),
     sa.Column('eligible', sa.String(length=5), nullable=True),
     sa.Column('loan_eligible_type', sa.Integer(), nullable=True),
-    sa.Column('loan_eligible_amount', sa.Float(), nullable=True),
+    sa.Column('loan_eligible_amount', sa.Integer(), nullable=True),
     sa.Column('fdir', sa.Text(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True, comment='description'),
     sa.Column('updated_by', sa.Integer(), nullable=True),

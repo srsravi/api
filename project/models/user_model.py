@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer,Float,INT, String, Text, DateTime, ForeignKey,Enum,Date,Boolean
+from sqlalchemy import Column, Integer,Float,INT, Numeric,String, Text, DateTime, ForeignKey,Enum,Date,Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 #from project.database.database import Base
@@ -153,32 +153,32 @@ class CustomerDetailsModel(BaseModel):
     #Salaried column fields
     companyName = Column(String(55), default='',nullable=True)
     designation = Column(String(55), default='' ,nullable=True)
-    totalExperience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
-    present_organization_years =  Column(Integer, default=None ,nullable=True)
+    totalExperience = Column(Numeric(10, 2), default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
+    present_organization_years =  Column(Numeric(10, 2), default=None ,nullable=True)
     workLocation = Column(String(55), default='',nullable=True)
-    grossSalary = Column(Float, default=None, comment="gross salary" ,nullable=True)
-    netSalary = Column(Float, default=None, comment="net salary" ,nullable=True)
+    grossSalary = Column(Numeric(10, 2), default=None, comment="gross salary" ,nullable=True)
+    netSalary = Column(Numeric(10, 2), default=None, comment="net salary" ,nullable=True)
     otherIncome = Column(String(6), default="No", comment="net salary" ,nullable=True)
     Obligations = Column(String(6), default="No", comment="Obligations" ,nullable=True)
     other_income_list = Column(Text, default=None, nullable=True,  comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
-    obligations_per_month = Column(Integer, default=None ,nullable=True)
+    obligations_per_month = Column(Numeric(10, 2), default=None ,nullable=True)
 
     #SENP Columns fields
     #company_name = Column(String(55), default='') #already exists
     #designation = Column(String(55), default='') #already exists
-    number_of_years = Column(Integer, default=None, nullable=True)
+    number_of_years = Column(Numeric(10, 2), default=None, nullable=True)
     location = Column(String(55), default='', nullable=True)
     last_turnover_year = Column(String(55), default='')
-    last_year_turnover_amount = Column(Integer, default=None, nullable=True)
-    last_year_itr =  Column(Integer, default=None, nullable=True)
-    lastYearITRamount =Column(Integer, default=None, nullable=True)
+    last_year_turnover_amount = Column(Numeric(10, 2), default=None, nullable=True)
+    last_year_itr =  Column(String(55), default=None, nullable=True)
+    lastYearITRamount =Column(Numeric(10, 2), default=None, nullable=True)
     current_turnover_year = Column(String(55), default='')
-    current_year_turnover_amount = Column(Integer, default=None, nullable=True)
-    current_year_itr =  Column(Integer, default=None, nullable=True)
-    presentYearITRamount = Column(Integer, default=None, nullable=True)
+    current_year_turnover_amount = Column(Numeric(10, 2), default=None, nullable=True)
+    current_year_itr =  Column(String(55), default=None, nullable=True)
+    presentYearITRamount = Column(Numeric(10, 2), default=None, nullable=True)
     #already exists above
     #other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
-    avg_income_per_month =  Column(Integer, default=None, nullable=True)
+    avg_income_per_month =  Column(Numeric(10, 2), default=None, nullable=True)
     #Obligations = Column(String(6), default="No", comment="Obligations")
     other_obligation = Column(Text, default='', comment="Optional details of other financial obligations as a JSON stringified list of dictionaries.")
 
@@ -187,7 +187,7 @@ class CustomerDetailsModel(BaseModel):
     customer_income_type_details = relationship("mdIncomeTypes", back_populates="customer_income_type")
     
     all_obligations = Column(Text, default=None)
-    total_obligation_amount_per_month = Column(Integer, default=None, nullable=True)
+    total_obligation_amount_per_month = Column(Numeric(10, 2), default=None, nullable=True)
     coapplicant_data = Column(Text, default=None, comment="Json Stringify data")
 
     agent_id = Column(Integer, default=None, nullable=True)
@@ -197,7 +197,7 @@ class CustomerDetailsModel(BaseModel):
 
     eligible = Column(String(5), nullable=True, default="No" )
     loan_eligible_type =Column(Integer, nullable=True, default=None )
-    loan_eligible_amount =  Column(Integer, nullable=True, default=None )
+    loan_eligible_amount =  Column(Numeric(10, 2), default=None ,nullable=True)
     fdir = Column(Text, nullable=True, default=None )
     description = Column(Text, default=None, comment="description")
 
@@ -217,7 +217,7 @@ class SubscriptionModel(BaseModel):
     start_date = Column(DateTime, nullable=True, default=datetime.now(timezone.utc))
     end_date = Column(DateTime,nullable=True,)
     payment_status = Column(String(100), default="Pending")  # Payment status (Pending, Success, Failed)
-    payment_amount = Column(Float)
+    payment_amount = Column(Numeric(10, 2), default=None ,nullable=True)
     invoice_id = Column(String(100), index=True,default=None)
     razorpay_order_id = Column(String(100), index=True,default=None)  # Razorpay order ID
     razorpay_payment_id = Column(String(100), index=True,default=None)  # Razorpay payment ID
@@ -253,35 +253,35 @@ class LoanapplicationModel(BaseModel):
     profession_sub_type_id = Column(Integer, ForeignKey("md_profession_sub_types.id"),nullable=True, default=None, unique=False)
     profession_sub_type_details = relationship("MdProfessionSubTypes", back_populates="lead_profession_sub_type")
     sepType = Column(String(20), default=None,nullable=True,)
-    #Salaried column fields
+    #Salaried column fields Column(Numeric(10, 2), default=None ,nullable=True)
     companyName = Column(String(55), default='',nullable=True)
     designation = Column(String(55), default='' ,nullable=True)
-    totalExperience = Column(Float, default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
-    present_organization_years =  Column(Integer, default=None ,nullable=True)
+    totalExperience = Column(Numeric(10, 2), default=None, comment="Total work experience in years (e.g., 1.5 for one and a half years)")
+    present_organization_years =  Column(Numeric(10, 2), default=None ,nullable=True)
     workLocation = Column(String(55), default='',nullable=True)
-    grossSalary = Column(Float, default=None, comment="gross salary" ,nullable=True)
-    netSalary = Column(Float, default=None, comment="net salary" ,nullable=True)
+    grossSalary = Column(Numeric(10, 2), default=None ,nullable=True)
+    netSalary = Column(Numeric(10, 2), default=None ,nullable=True)
     otherIncome = Column(String(6), default="No", comment="net salary" ,nullable=True)
     Obligations = Column(String(6), default="No", comment="Obligations" ,nullable=True)
     other_income_list = Column(Text, default=None, nullable=True,  comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
-    obligations_per_month = Column(Integer, default=None ,nullable=True)
+    obligations_per_month = Column(Numeric(10, 2), default=None ,nullable=True)
 
     #SENP Columns fields
     #company_name = Column(String(55), default='') #already exists
     #designation = Column(String(55), default='') #already exists
-    number_of_years = Column(Integer, default=None, nullable=True)
+    number_of_years = Column(Numeric(10, 2), default=None ,nullable=True)
     location = Column(String(55), default=None)
     last_turnover_year = Column(String(55), default=None)
-    last_year_turnover_amount = Column(Integer, default=None)
-    last_year_itr =  Column(Integer, default=None)
-    lastYearITRamount =Column(Integer, default=None)
-    current_turnover_year = Column(String(55), default=None)
-    current_year_turnover_amount = Column(Integer, default=None)
-    current_year_itr =  Column(Integer, default=None)
-    presentYearITRamount = Column(Integer, default=None)
+    last_year_turnover_amount =Column(Numeric(10, 2), default=None ,nullable=True)
+    last_year_itr =  Column(String(55), default=None, nullable=True)
+    lastYearITRamount = Column(Numeric(10, 2), default=None ,nullable=True)
+    current_turnover_year = Column(String(55), default=None, nullable=True)
+    current_year_turnover_amount = Column(Numeric(10, 2), default=None ,nullable=True)
+    current_year_itr =  Column(String(55), default=None, nullable=True)
+    presentYearITRamount = Column(Numeric(10, 2), default=None ,nullable=True)
     #already exists above
     #other_income = Column(Text, default=None, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]")
-    avg_income_per_month =  Column(Integer, default=None)
+    avg_income_per_month =  Column(Numeric(10, 2), default=None ,nullable=True)
     #Obligations = Column(String(6), default="No", comment="Obligations")
     other_obligation = Column(Text, default='', comment="Optional details of other financial obligations as a JSON stringified list of dictionaries.")
 
@@ -289,7 +289,7 @@ class LoanapplicationModel(BaseModel):
     income_type_id = Column(Integer, ForeignKey("md_income_types.id"), default=None, unique=False)
     income_type_details = relationship("mdIncomeTypes", back_populates="lead_income_type")
     all_obligations = Column(Text, default=None)
-    total_obligation_amount_per_month = Column(Float, default=None)
+    total_obligation_amount_per_month = Column(Numeric(10, 2), default=None ,nullable=True)
     coapplicant_data = Column(Text, default=None, comment="Json Stringify data")
 
     agent_id = Column(Integer, nullable=True, default=None )
@@ -299,7 +299,7 @@ class LoanapplicationModel(BaseModel):
 
     eligible = Column(String(5), nullable=True, default="No" )
     loan_eligible_type =Column(Integer, nullable=True, default=None )
-    loan_eligible_amount =  Column(Integer, nullable=True, default=None )
+    loan_eligible_amount =  Column(Numeric(10, 2), default=None ,nullable=True)
     fdir = Column(Text, nullable=True, default=None )
     description = Column(Text, default=None, comment="description")
 
