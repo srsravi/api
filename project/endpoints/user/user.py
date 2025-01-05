@@ -539,7 +539,7 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         return Utility.json_response(status=SUCCESS, message="Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 

@@ -11,6 +11,7 @@ import razorpay
 from datetime import datetime, timedelta
 import time
 import random
+from decimal import Decimal
 razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 
 class Utility:
@@ -141,7 +142,8 @@ class Utility:
                 result[column.name] =value.isoformat()
             elif isinstance(value, date):
                 result[column.name] =value.isoformat()
-            
+            elif isinstance(value, Decimal):
+                result[column.name] =float(value)
             else:
                 result[column.name] = value
         return result
