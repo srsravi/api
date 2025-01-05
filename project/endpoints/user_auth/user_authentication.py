@@ -1,7 +1,7 @@
 from datetime import datetime, timezone,timedelta
 from sqlalchemy import and_
 from datetime import datetime
-from ...models.user_model import CustomerModal,LoanapplicationModel,EnquiryModel,SubscriptionModel
+from ...models.user_model import CustomerModal,CustomerDetailsModel, LoanapplicationModel,EnquiryModel,SubscriptionModel
 from ...models.master_data_models import ServiceConfigurationModel,MdSubscriptionPlansModel
 
 from . import APIRouter, Utility, SUCCESS, FAIL, EXCEPTION ,WEB_URL, API_URL, INTERNAL_ERROR,BAD_REQUEST,BUSINESS_LOGIG_ERROR, Depends, Session, get_database_session, AuthHandler
@@ -363,9 +363,11 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             db.flush()
             db.commit()
             if user_data.id:
+                details =  CustomerDetailsModel(customer_id=user_data.id,service_type_id=service_type_id)
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
                 new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}", service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
+                db.add(details)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
                     user_data.salesman_id = configuration.user_id
