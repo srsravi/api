@@ -438,7 +438,6 @@ async def upload_file(request:ConfigurationListSchema,auth_user=Depends(AuthHand
         print(E)        
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
 
-razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 @router.post("/payment-webhook")
 async def payment_webhook(request: Request):
     webhook_data = await request.body()
@@ -446,6 +445,7 @@ async def payment_webhook(request: Request):
 
     # Verify the webhook signature
     try:
+        razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
         razorpay_client.utility.verify_webhook_signature(webhook_data, signature, "your_webhook_secret")
     
         # Parse the event data
