@@ -244,11 +244,12 @@ class Utility:
     @staticmethod
     def generate_websocket_id(user_data=None):
         socket_id =None
-        if "role_id" in user_data and user_data["role_id"] in [1,3]:
+        if "tenant_id" in user_data and user_data["tenant_id"] is not None:
+            socket_id = f'''{user_data['tenant_id']}_{user_data["id"]}_{user_data["role_id"]}'''
+        elif "role_id" in user_data:
            socket_id = f'''superuser_{user_data["id"]}_{user_data["role_id"]}'''
 
-        elif "tenant_id" in user_data and user_data["tenant_id"] is not None:
-            socket_id = f'''{user_data['tenant_id']}_{user_data["id"]}_{user_data["role_id"]}'''
+        
         return socket_id    
     @staticmethod
     def generate_tfs_code(role_id):
