@@ -104,6 +104,26 @@ app.add_middleware(
 
 app.include_router(api_router)
 #9989678268
+class BodySizeLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, max_size: int = 10 * 1024 * 1024):  # default to 10MB
+        super().__init__(app)
+        self.max_size = max_size
+
+    async def dispatch(self, request: Request, call_next):
+        # Get the request body and check its size
+        body = await request.body()
+        if len(body) > self.max_size:
+            return JSONResponse(
+                content={"detail": "Request Entity Too Large"},
+                status_code=413,
+            )
+        # Continue with the request processing
+        return await call_next(request)
+
+app = FastAPI()
+
+# Add the middleware with a size limit of 50 MB
+app.add_middleware(BodySizeLimitMiddleware, max_size=500 * 1024 * 1024)
 
 @app.get("/")
 def read_root():

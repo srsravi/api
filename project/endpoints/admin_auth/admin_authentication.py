@@ -26,6 +26,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.sql import select, and_, or_, not_,func
 from datetime import date, datetime,timezone,timedelta
 from ...schemas.user_schema import UserDetailsRequest,UserFilterRequest,GetBranchListRequestSchema,PaginatedAdminUserResponse,BranchListResponseSchema,GetUserDetailsReq,UserListResponse, UpdateKycDetails,UpdateProfile,BeneficiaryRequest,BeneficiaryEdit, GetBeneficiaryDetails, ActivateBeneficiary,UpdateBeneficiaryStatus, ResendBeneficiaryOtp,BeneficiaryResponse
+from ...aploger import AppLogger
 
 # APIRouter creates path operations for product module
 router = APIRouter(
@@ -67,7 +68,7 @@ async def register(request: AdminRegister, db: Session = Depends(get_database_se
         else:
             return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
 
@@ -141,7 +142,7 @@ async def add_user(request:addSalesUserSchema,background_tasks: BackgroundTasks,
 
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
@@ -253,7 +254,7 @@ async def add_user(request:addAgentUserSchema,background_tasks: BackgroundTasks,
 
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message=str(E), error=[], data={})
 
@@ -309,7 +310,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -450,7 +451,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                     return Utility.dict_response(status=SUCCESS, message=all_messages.SUCCESS_LOGIN, error=[], data=user_dict)
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 @router.post("/forgot-password", response_description="Forgot Password")
@@ -517,7 +518,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -592,7 +593,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -698,7 +699,7 @@ async def get_users(filter_data: GetBranchListRequestSchema,auth_user=Depends(Au
             per_page=filter_data.per_page
         )
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
@@ -765,7 +766,7 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
             per_page=filter_data.per_page
         )
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
 
@@ -799,7 +800,7 @@ async def tenant_invitation_mail(request:TenantInvitationSchema,background_tasks
         background_tasks.add_task(Email.send_mail, recipient_email=[request.email], subject="Invitation Link", template='invitation_template.html',data={"link":link})
         return Utility.json_response(status=SUCCESS, message="Invitation Sent to the mail", error=[], data={"email":request.email})   
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
 
 
@@ -860,7 +861,7 @@ async def signup_tenant_user(request:TenantSchema,background_tasks: BackgroundTa
         db.commit()
         return Utility.json_response(status=SUCCESS, message="User Registered Successfully", error=[], data=user_data)   
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
     
@@ -932,6 +933,6 @@ async def get_users(filter_data: UserDetailsRequest,auth_user=Depends(AuthHandle
 
         
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
