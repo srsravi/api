@@ -527,7 +527,7 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
             application_data["tenant_details"]["email"] =customer.tenant_details.email
         if customer.created_by and customer.created_by_details:
             
-            application_data["applicant_details"]["created_by_details"] = customer.created_by_details
+            application_data["applicant_details"]["created_by_details"] =  Utility.model_to_dict(customer.created_by_details)
         
         if customer.agent_id :
             #get agent details from Adminuser Modal
@@ -535,7 +535,7 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
         if customer.salesman_id :
             #get salesman details from Adminuser Modal
             pass
-        
+        print("dhgdhghdkghd")
         return Utility.json_response(status=SUCCESS, message="Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:

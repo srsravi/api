@@ -501,8 +501,8 @@ async def add_service_configuration(request:Request,auth_user=Depends(AuthHandle
 
         customer_query = db.query(CustomerModal)#.filter(CustomerModal.status_id==3)
         
-        salesmen_query = db.query(AdminUser).filter(AdminUser.status_id==3,AdminUser.role_id==3)
-        agents_query = db.query(AdminUser).filter(AdminUser.status_id==3,AdminUser.role_id==4)
+        salesmen_query = db.query(AdminUser).filter(AdminUser.role_id==3)
+        agents_query = db.query(AdminUser).filter(AdminUser.role_id==4)
         if tenant_id is not None:
             customer_query = customer_query.filter(CustomerModal.tenant_id==tenant_id)
         if role_id ==3:
