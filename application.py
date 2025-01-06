@@ -120,8 +120,6 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         # Continue with the request processing
         return await call_next(request)
 
-app = FastAPI()
-
 # Add the middleware with a size limit of 50 MB
 app.add_middleware(BodySizeLimitMiddleware, max_size=500 * 1024 * 1024)
 

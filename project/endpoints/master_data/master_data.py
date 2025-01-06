@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import and_
+from fastapi import FastAPI, Request
 from datetime import datetime
 from ...models.admin_user import AdminUser
 from sqlalchemy.orm import  joinedload
@@ -36,6 +37,7 @@ import razorpay
 from fastapi.responses import RedirectResponse
 import requests
 from ...aploger import AppLogger
+from ...models.user_model import EnquiryModel
 
 router = APIRouter(
     prefix="/masterdata",
@@ -484,6 +486,48 @@ async def payment_webhook(request: Request):
     except Exception as e:
         AppLogger.error(f"Payment Error: ${str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/get-dashboard-data", response_description="Edit service configuration")
+async def add_service_configuration(request:Request,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+        
+        role_id = auth_user["role_id"]
+        tenant_id = None
+        if auth_user["role_id"] ==1  and request.get("teanat_id", None) is not None:
+            tenant_id = request.get("teanat_id", None)
+            
+        elif "tenant_id" in auth_user:
+            tenant_id = auth_user["tenant_id"]
+
+        customer_query = db.query(CustomerModal)#.filter(CustomerModal.status_id==3)
+        
+        salesmen_query = db.query(AdminUser).filter(AdminUser.status_id==3,AdminUser.role_id==3)
+        agents_query = db.query(AdminUser).filter(AdminUser.status_id==3,AdminUser.role_id==4)
+        if tenant_id is not None:
+            customer_query = customer_query.filter(CustomerModal.tenant_id==tenant_id)
+        if role_id ==3:
+            salesmen_query = salesmen_query.filter(AdminUser.created_by==auth_user["id"])
+            agents_query = agents_query.filter(AdminUser.created_by==auth_user["id"])
+            customer_query = customer_query.filter(or_( CustomerModal.created_by==auth_user["id"], CustomerModal.salesman_id==auth_user["id"] ))
+        if role_id ==4:
+            salesmen_query = salesmen_query.filter(AdminUser.created_by==auth_user["id"])
+            agents_query = agents_query.filter(AdminUser.created_by==auth_user["id"])
+            customer_query = customer_query.filter(or_(  CustomerModal.created_by==auth_user["id"], CustomerModal.agent_id==auth_user["id"] ))
+            
+        customer_count = customer_query.count()
+        #get today enquiry
+        today = datetime.today().date()
+        enquiry_query = db.query(EnquiryModel).filter(EnquiryModel.status_id !=1, EnquiryModel.status_id !=2, func.date(EnquiryModel.followupdate)==today )
+        res_data = {}
+        res_data["customer_count"]=customer_count
+        res_data["total_subscribers"]= customer_query.filter(CustomerModal.current_plan_id >=1).count()
+        res_data["today_enquiry_followups"] = enquiry_query.count()
+        res_data["total_agents"] = agents_query.count()
+        res_data["total_salesmens"] = salesmen_query.count()
+        return Utility.json_response(status=SUCCESS, message="Success", error=[], data=res_data)
+            
+    except Exception as E:
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
 
 
 
