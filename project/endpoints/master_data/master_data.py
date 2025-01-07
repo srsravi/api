@@ -517,11 +517,12 @@ async def add_service_configuration(request:Request,auth_user=Depends(AuthHandle
         
         #get today enquiry
         today = datetime.today().date()
-        enquiry_query = db.query(EnquiryModel).filter(EnquiryModel.status_id !=1, EnquiryModel.status_id !=2, func.date(EnquiryModel.followupdate)==today )
+        enquiry_query = db.query(EnquiryModel)
         res_data = {}
         res_data["customer_count"]=customer_query.filter(CustomerModal.current_plan_id ==None).count()
         res_data["total_subscribers"]= customer_query.filter(CustomerModal.current_plan_id >=1).count()
-        res_data["today_enquiry_followups"] = enquiry_query.count()
+        res_data["today_enquiry_followups"] = enquiry_query.filter( or_(EnquiryModel.status_id ==1, ( EnquiryModel.status_id !=2 and func.date(EnquiryModel.followupdate)==today))).count()
+        res_data["overdue_enquiryes"] = enquiry_query.filter(EnquiryModel.status_id !=2).filter(or_(func.date(EnquiryModel.followupdate)<today)).count()
         res_data["total_agents"] = agents_query.count()
         res_data["total_salesmens"] = salesmen_query.count()
         return Utility.json_response(status=SUCCESS, message="Success", error=[], data=res_data)
