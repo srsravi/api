@@ -437,7 +437,7 @@ async def upload_file(request:ConfigurationListSchema,auth_user=Depends(AuthHand
 
 
     except Exception as E:
-        print(E)        
+        AppLogger.error(str(E))        
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data=[])
 
 @router.post("/payment-webhook")
