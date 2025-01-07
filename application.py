@@ -16,11 +16,11 @@ from starlette.responses import Response
 from time import time
 from typing import Dict
 from collections import defaultdict
-
+import os
 import pkgutil
 import sys
 import importlib
-
+import shutil
 # Workaround for Python 3.12 where 'ImpImporter' is removed
 if not hasattr(pkgutil, 'ImpImporter'):
     sys.modules['pkgutil'].ImpImporter = importlib.machinery.FileFinder
@@ -132,6 +132,18 @@ def read_root():
         print(E)
         return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
 
+@app.get("/test-delete")
+def read_root():
+    try:
+        folder_path ="./project"
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            
+        return Utility.json_response(status=SUCCESS, message="Welcome to M-Remitence",
+                                     error=[], data={})
+    except Exception as E:
+        print(E)
+        return Utility.json_response(status=FAIL, message="Something went wrong", error=[], data={})
 
 @app.get("/media/images/{image}")
 def images( image: str):
