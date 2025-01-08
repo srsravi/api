@@ -221,6 +221,7 @@ class SubscriptionModel(BaseModel):
     invoice_id = Column(String(100), index=True,default=None)
     razorpay_order_id = Column(String(100), index=True,default=None)  # Razorpay order ID
     razorpay_payment_id = Column(String(100), index=True,default=None)  # Razorpay payment ID
+    razorpay_signature =  Column(String(800), index=False,default=None)
     status = Column(Boolean, default=False, comment="Is status ==True plan is active, if False == plan inactive")
     payment_link = Column(Text(), index=True,default=None) 
     customer = relationship('CustomerModal', back_populates='subscription')

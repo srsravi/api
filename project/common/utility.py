@@ -12,9 +12,27 @@ from datetime import datetime, timedelta
 import time
 import random
 from decimal import Decimal
+from ..aploger import AppLogger
 razorpay_client = razorpay.Client(auth=("rzp_live_cPBJOHgDRsgEzg", "WG3HbZSO2izDGu1UbsSaTtCC"))
 
 class Utility:
+
+    @staticmethod
+    def create_order(amount=0,invoice=''):
+        try:
+            
+            order = razorpay_client.order.create({
+                'amount': amount,
+                'currency': 'INR',
+                'payment_capture': '1',  # Automatic capture
+                "status":True,
+                "message": "successfully created"
+            })
+            return order
+        except Exception as e:
+            AppLogger.error(str(e))
+            return {"message":str(e),"status":False}  
+    
 
     @staticmethod
     def create_payment_link(amount=0,invoice=''):
@@ -58,10 +76,10 @@ class Utility:
             payment_link = razorpay_client.payment_link.create(data=payment_link_data)
             # Extract payment link from the response
             link = payment_link['short_url']
-            return {"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
+            return {"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id,"order_details":order}
 
         except Exception as e:
-            print(e)
+            AppLogger.error(str(e))
             return {"message":str(e),"status":False}
     @staticmethod
     def json_response(status, message, error, data,code=''):

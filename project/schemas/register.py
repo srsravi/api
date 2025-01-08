@@ -608,6 +608,11 @@ class AddPlanToUserSchema(BaseModel):
     customer_id:int
 class GetpaymentLink(BaseModel):
     token:str
+
+class paymentSuccessSchema(BaseModel):
+    razorpay_payment_id:str
+    razorpay_order_id:str
+    razorpay_signature:str
     
 
     

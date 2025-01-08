@@ -555,7 +555,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                     user_data.current_plan_id = current_plan_id
                     razorpay_payment_id = None
                     invoice_id = Utility.generate_tfs_code("INVOICE")
-                    patment_details = Utility.create_payment_link(plan_details.amount)
+                    patment_details = Utility.create_payment_link(plan_details.amount,invoice_id)
                     if patment_details.get("status",False) and patment_details.get("payment_link","") != "" and "razorpay_order_id" in patment_details:
                         #{"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
                         mail_data["payment_link"] = patment_details["payment_link"]
@@ -568,7 +568,8 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                         payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
                         payment_amount = plan_details.amount,
                         razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
-                        razorpay_payment_id = razorpay_payment_id,
+                        razorpay_payment_id = patment_details["order_details"]["razorpay_payment_id"],
+                        razorpay_signature = patment_details["order_details"]["razorpay_signature"],
                         payment_link=patment_details["payment_link"],
                         tenant_id = user_data.tenant_id ##we need to impliment
                         )
@@ -1204,7 +1205,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
 
                 if send_payment_link:
                     invoice_id = Utility.generate_tfs_code("INVOICE")
-                    patment_details = Utility.create_payment_link(plan_details.amount)
+                    patment_details = Utility.create_payment_link(plan_details.amount, invoice_id)
                     if patment_details.get("status",False) and patment_details.get("payment_link","") != "" and "razorpay_order_id" in patment_details:
                         #{"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
                         mail_data["payment_link"] = patment_details["payment_link"]
@@ -1217,7 +1218,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                         payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
                         payment_amount = plan_details.amount,
                         razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
-                        razorpay_payment_id = razorpay_payment_id,
+                        razorpay_payment_id = patment_details["order_details"]["razorpay_payment_id"],
+                        razorpay_signature = patment_details["order_details"]["razorpay_signature"],
                         payment_link=patment_details["payment_link"],
                         tenant_id = user_data.tenant_id ##we need to impliment
                         )
@@ -1300,6 +1302,7 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription Plan is not found!", error=[], data={})
 
         user_data = db.query(CustomerModal).filter(CustomerModal.id == customer_id).first()
+        invoice_id = Utility.generate_tfs_code("INVOICE")
         if user_data is not None:
             patment_details = Utility.create_payment_link(plan_details.amount)
             new_subscription = SubscriptionModel(
@@ -1310,8 +1313,9 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
             payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
             payment_amount = plan_details.amount,
             razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
-            razorpay_payment_id = "",
-            invoice_id = Utility.generate_tfs_code("INVOICE"),
+            razorpay_signature = patment_details["order_details"]["razorpay_signature"],
+            razorpay_payment_id = patment_details["order_details"]["razorpay_payment_id"],
+            invoice_id = invoice_id ,
             tenant_id = user_data.tenant_id ##we need to impliment
             
             )
