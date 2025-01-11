@@ -581,7 +581,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                             token_data["plan_details"] = {}
                             token_data["plan_details"]["name"] = plan_details.name
                             token_data["plan_details"]["amount"] = plan_details.amount
-                            token_data["plan_details"]["validity"] = plan_details.name
+                            token_data["plan_details"]["validity"] = plan_details.validity
                             token_data["subscription_id"]  = new_subscription.id
                             token_data["order_details"]  = order_details
                             token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -1232,7 +1232,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                             token_data["plan_details"] = {}
                             token_data["plan_details"]["name"] = plan_details.name
                             token_data["plan_details"]["amount"] = plan_details.amount
-                            token_data["plan_details"]["validity"] = plan_details.name
+                            token_data["plan_details"]["validity"] = plan_details.validity
                             token_data["subscription_id"]  = new_subscription.id
                             token_data["order_details"]  = order_details
                             token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -1331,7 +1331,7 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
                     token_data["plan_details"] = {}
                     token_data["plan_details"]["name"] = plan_details.name
                     token_data["plan_details"]["amount"] = plan_details.amount
-                    token_data["plan_details"]["validity"] = plan_details.name
+                    token_data["plan_details"]["validity"] = plan_details.validity
                     token_data["subscription_id"]  = new_subscription.id
                     token_data["order_details"]  = order_details
                     token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -1344,7 +1344,7 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
                     db.add(tokensModel(**user_dict))
                     db.commit()
                     background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
-                    return Utility.json_response(status=SUCCESS, message=all_messages.LOAN_APPLICATION_CREATED, error=[],data=token_data,code="subscription")
+                    return Utility.json_response(status=SUCCESS, message=all_messages.SUBSCRIPTION_ADDED, error=[],data=token_data,code="subscription")
             else:
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1414,9 +1414,10 @@ async def generate_link(request:paymentSuccessSchema,background_tasks: Backgroun
             subscription.razorpay_payment_id =  razorpay_payment_id
             subscription.razorpay_signature =  razorpay_signature
             subscription.start_date =  datetime.now(timezone.utc),
-            subscription.end_date =  datetime.now(timezone.utc)+timedelta(days=90),
+            subscription.end_date =  datetime.now(timezone.utc)+timedelta(days=plan_details.validity),
             customer.current_subscription_id = subscription.id
-            subscription.payment_amount = "success"
+            subscription.payment_status = "Paid"
+            
             subscription.status = True
             db.commit()
             return Utility.json_response(status=SUCCESS, message="Success", error=[], data={})
