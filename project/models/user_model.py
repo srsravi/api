@@ -125,6 +125,7 @@ class CustomerModal(BaseModel):
     current_plan_id = Column(Integer, ForeignKey("md_subscription_plans.id"), nullable=True, default=None )
     current_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
     subscription = relationship('SubscriptionModel', back_populates='customer')
+    current_subscription_id =Column(Integer,nullable=True, default=None)
     class Config:
         from_attributes = True
         str_strip_whitespace = True
