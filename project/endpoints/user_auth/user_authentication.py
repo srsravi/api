@@ -17,6 +17,7 @@ from ...models.admin_user import AdminUser
 from ...models.admin_configuration_model import tokensModel
 from ...library.webSocketConnectionManager import manager
 from ...common.razorpay_service import RazorpayClient, get_razorpay_client
+from ...aploger import AppLogger
 # APIRouter creates path operations for product module
 router = APIRouter(
     prefix="/auth",
@@ -473,7 +474,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/signup-customer", response_description="Customer Signup")
-async def register_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
+async def register_customer(request: createCustomerSchema,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session),razor_pay_client: RazorpayClient =Depends(get_razorpay_client)):
     try:
         tenant_id = 1
         mobile_no = request.mobile_no
@@ -518,9 +519,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                                       tenant_id=tenant_id,
                                       service_type_id=service_type_id
                                       )
-            if service_type_id==1 and current_plan_id is not None:
-                user_data.current_plan_id = current_plan_id
-            #Send Mail to user with active link
+            
             mail_data = {"body":"Welcome to TFS"}
             db.add(user_data)
             db.flush()
@@ -553,12 +552,9 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
 
                 if service_type_id==1 and current_plan_id is not None:
                     user_data.current_plan_id = current_plan_id
-                    razorpay_payment_id = None
                     invoice_id = Utility.generate_tfs_code("INVOICE")
-                    patment_details = Utility.create_payment_link(plan_details.amount,invoice_id)
-                    if patment_details.get("status",False) and patment_details.get("payment_link","") != "" and "razorpay_order_id" in patment_details:
-                        #{"status":True,"message": "Payment link sent successfully", "payment_link": link, "razorpay_order_id": razorpay_order_id}
-                        mail_data["payment_link"] = patment_details["payment_link"]
+                    order_details = razor_pay_client.create_order(amount=plan_details.amount, currency="INR" )
+                    if order_details.get("status",False) and "razorpay_order_id" in order_details:
                         new_subscription = SubscriptionModel(
                         customer_id = user_data.id ,
                         plan_id =current_plan_id,
@@ -567,36 +563,38 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                         invoice_id =invoice_id,
                         payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
                         payment_amount = plan_details.amount,
-                        razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
-                        razorpay_payment_id = patment_details["order_details"]["razorpay_payment_id"],
-                        razorpay_signature = patment_details["order_details"]["razorpay_signature"],
-                        payment_link=patment_details["payment_link"],
-                        tenant_id = user_data.tenant_id ##we need to impliment
+                        razorpay_order_id = order_details["razorpay_order_id"], ##we need to impliment
+                        razorpay_payment_id = "",
+                        razorpay_signature ="",
+                        payment_link="",
+                        tenant_id = tenant_id ##we need to impliment
                         )
                         db.add(new_subscription)
                         db.commit()
+                        
                         if new_subscription.id:
                             link_otp = str(Utility.generate_otp())
                             patment_link_category = "PAYMENT_LINK"
                             token_data={"user_id": udata["id"] ,"catrgory":patment_link_category,"otp":link_otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name}
                             token_data["name"] = user_data.name
                             token_data["email"] = user_data.email
-                            token_data["payment_link"] = patment_details["payment_link"]
-                            
-
                             token_data["plan_details"] = {}
                             token_data["plan_details"]["name"] = plan_details.name
                             token_data["plan_details"]["amount"] = plan_details.amount
                             token_data["plan_details"]["validity"] = plan_details.name
                             token_data["subscription_id"]  = new_subscription.id
-                            token = AuthHandler().encode_token(token_data,minutes=2880)
+                            token_data["order_details"]  = order_details
+                            token = AuthHandler().encode_token(token_data,minutes=2880222222)
                             token_data["link"] = f"{WEB_URL}payment?token={token}"
-                            tokenmodel = {"user_id":udata["id"],"catrgory":patment_link_category,"otp":link_otp}
-                            tokenmodel["token"]=token
-                            tokenmodel["ref_id"]=new_subscription.id
-                            db.add(tokensModel(**tokenmodel))
+                            token_data["payment_link"] = token_data["link"]
+                            
+                            user_dict={"user_id":udata["id"],"catrgory":patment_link_category,"otp":link_otp}
+                            user_dict["token"]=token
+                            user_dict["ref_id"]=new_subscription.id
+                            db.add(tokensModel(**user_dict))
                             db.commit()
-                            #background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
+                            background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
+                
                 
 
                 db.commit()
@@ -1207,6 +1205,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                     invoice_id = Utility.generate_tfs_code("INVOICE")
                     order_details = razor_pay_client.create_order(amount=plan_details.amount, currency="INR" )
                     if order_details.get("status",False) and "razorpay_order_id" in order_details:
+                        user_data.current_plan_id = current_plan_id
                         new_subscription = SubscriptionModel(
                         customer_id = user_data.id ,
                         plan_id =current_plan_id,
@@ -1223,7 +1222,7 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                         )
                         db.add(new_subscription)
                         db.commit()
-                        print("new_subscription.id====",new_subscription.id," *****")
+                        
                         if new_subscription.id:
                             link_otp = str(Utility.generate_otp())
                             patment_link_category = "PAYMENT_LINK"
@@ -1277,12 +1276,12 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
         else:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_ALREADY_EXISTS, error=[], data={})
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/add-plan-touser",  response_description="enquirer to make as customer")
-async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper),razor_pay_client:RazorpayClient =Depends(get_razorpay_client),db: Session = Depends(get_database_session)):
     try:
         tenant_id = 1
         current_plan_id = None
@@ -1303,51 +1302,56 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
         user_data = db.query(CustomerModal).filter(CustomerModal.id == customer_id).first()
         invoice_id = Utility.generate_tfs_code("INVOICE")
         if user_data is not None:
-            patment_details = Utility.create_payment_link(plan_details.amount)
-            new_subscription = SubscriptionModel(
-            customer_id = user_data.id ,
-            plan_id =current_plan_id,
-            start_date = datetime.now(timezone.utc),
-            end_date = None,
-            payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
-            payment_amount = plan_details.amount,
-            razorpay_order_id = patment_details["razorpay_order_id"], ##we need to impliment
-            razorpay_signature = patment_details["order_details"]["razorpay_signature"],
-            razorpay_payment_id = patment_details["order_details"]["razorpay_payment_id"],
-            invoice_id = invoice_id ,
-            tenant_id = user_data.tenant_id ##we need to impliment
-            
-            )
-            db.add(new_subscription)
-            db.commit()
-            if new_subscription.id:
-                link_otp = str(Utility.generate_otp())
-                patment_link_category = "PAYMENT_LINK"
-                token_data={"user_id":user_data.id ,"catrgory":patment_link_category,"otp":link_otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name}
-                token_data["name"] = user_data.name
-                token_data["email"] = user_data.email
-                token_data["payment_link"] = patment_details["payment_link"]
-                token_data["plan_details"] = {}
-                token_data["plan_details"]["name"] = plan_details.name
-                token_data["plan_details"]["amount"] = plan_details.amount
-                token_data["plan_details"]["validity"] = plan_details.name
-                token_data["subscription_id"]  = new_subscription.id
-                token = AuthHandler().encode_token(token_data,minutes=2880)
-                token_data["link"] = f"{WEB_URL}payment?token={token}"
-                user_dict={"user_id":user_data.id,"catrgory":patment_link_category,"otp":link_otp}
-                user_dict["token"]=token
-                user_dict["ref_id"]=new_subscription.id
-                db.add(tokensModel(**user_dict))
+            user_data.current_plan_id = current_plan_id
+            order_details = razor_pay_client.create_order(amount=plan_details.amount, currency="INR" )
+            if order_details.get("status",False) and "razorpay_order_id" in order_details:
+                new_subscription = SubscriptionModel(
+                customer_id = user_data.id ,
+                plan_id =current_plan_id,
+                start_date = None,
+                end_date = None,
+                invoice_id =invoice_id,
+                payment_status = "Initiated",  # Payment status (Pending, Success, Failed)
+                payment_amount = plan_details.amount,
+                razorpay_order_id = order_details["razorpay_order_id"], ##we need to impliment
+                razorpay_payment_id = "",
+                razorpay_signature ="",
+                payment_link="",
+                tenant_id = tenant_id ##we need to impliment
+                )
+                db.add(new_subscription)
                 db.commit()
-                background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
-                return Utility.json_response(status=SUCCESS, message=all_messages.LOAN_APPLICATION_CREATED, error=[],data=token_data,code="subscription")
+                
+                if new_subscription.id:
+                    link_otp = str(Utility.generate_otp())
+                    patment_link_category = "PAYMENT_LINK"
+                    token_data={"user_id": user_data.id ,"catrgory":patment_link_category,"otp":link_otp,"invite_role_id":5,"email":user_data.email,"name":user_data.name}
+                    token_data["name"] = user_data.name
+                    token_data["email"] = user_data.email
+                    token_data["plan_details"] = {}
+                    token_data["plan_details"]["name"] = plan_details.name
+                    token_data["plan_details"]["amount"] = plan_details.amount
+                    token_data["plan_details"]["validity"] = plan_details.name
+                    token_data["subscription_id"]  = new_subscription.id
+                    token_data["order_details"]  = order_details
+                    token = AuthHandler().encode_token(token_data,minutes=2880222222)
+                    token_data["link"] = f"{WEB_URL}payment?token={token}"
+                    token_data["payment_link"] = token_data["link"]
+                    
+                    user_dict={"user_id":user_data.id,"catrgory":patment_link_category,"otp":link_otp}
+                    user_dict["token"]=token
+                    user_dict["ref_id"]=new_subscription.id
+                    db.add(tokensModel(**user_dict))
+                    db.commit()
+                    background_tasks.add_task(Email.send_mail, recipient_email=[user_data.email], subject="Subscription Payment Request", template='payment_request.html',data=token_data)
+                    return Utility.json_response(status=SUCCESS, message=all_messages.LOAN_APPLICATION_CREATED, error=[],data=token_data,code="subscription")
             else:
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
         else:
             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.USER_ALREADY_EXISTS, error=[], data={})
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
