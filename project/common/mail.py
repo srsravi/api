@@ -18,7 +18,7 @@ from io import BytesIO
 from jinja2 import Environment, FileSystemLoader
 #from ..email_templates
 from ..constant.status_constant import API_URL 
-
+from ..aploger import AppLogger
 class Email():
 
     
@@ -72,13 +72,20 @@ class Email():
             # Send the message via the SMTP server
             server = smtplib.SMTP('smtp.zoho.in', 587)
             server.starttls()
+            #server = smtplib.SMTP_SSL('smtp.zoho.com', 465)
+            
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, recipient_email, msg.as_string())
             server.quit()
             
             print(f"Email sent to {recipient_email}")
             response = "Success"
+        except smtplib.SMTPAuthenticationError as auth_err:
+            AppLogger.error(f"Authentication error: {str(auth_err)}")
+            print("Authentication error:", auth_err)
+            response = "Failed"
         except Exception as err:
+            AppLogger.error(f"Error: {str(err)}")
             print("Error while sending email:", err)
             response = "Failed"
         
