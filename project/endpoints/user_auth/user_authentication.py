@@ -403,7 +403,7 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         else:
             otp =str(Utility.generate_otp())
-            existing_user = user_obj.one()
+            existing_user = user_obj.first()
             udata =  Utility.model_to_dict(existing_user)
             rowData = {}
             rowData['user_id'] = udata["id"]
@@ -582,6 +582,8 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                             token_data["plan_details"]["name"] = plan_details.name
                             token_data["plan_details"]["amount"] = plan_details.amount
                             token_data["plan_details"]["validity"] = plan_details.validity
+                            token_data["plan_details"]["id"] = plan_details.id
+                            token_data["plan_details"]["description"] = plan_details.description
                             token_data["subscription_id"]  = new_subscription.id
                             token_data["order_details"]  = order_details
                             token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -605,7 +607,7 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
         else:
             otp =str(Utility.generate_otp())
-            existing_user = user_obj.one()
+            existing_user = user_obj.first()
             udata =  Utility.model_to_dict(existing_user)
             rowData = {}
             rowData['user_id'] = udata["id"]
@@ -760,7 +762,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
         login_count =0
         if user_obj.count() <= 0:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.EMAIL_NOT_REGISTERED, error=[], data={})
-        user_data = user_obj.one()
+        user_data = user_obj.first()
         
         
         if user_data.status_id !=3:
@@ -1233,6 +1235,8 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                             token_data["plan_details"]["name"] = plan_details.name
                             token_data["plan_details"]["amount"] = plan_details.amount
                             token_data["plan_details"]["validity"] = plan_details.validity
+                            token_data["plan_details"]["id"] = plan_details.id
+                            token_data["plan_details"]["description"] = plan_details.description
                             token_data["subscription_id"]  = new_subscription.id
                             token_data["order_details"]  = order_details
                             token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -1332,6 +1336,8 @@ async def add_plan_to_user(request:AddPlanToUserSchema,background_tasks: Backgro
                     token_data["plan_details"]["name"] = plan_details.name
                     token_data["plan_details"]["amount"] = plan_details.amount
                     token_data["plan_details"]["validity"] = plan_details.validity
+                    token_data["plan_details"]["id"] = plan_details.id
+                    token_data["plan_details"]["description"] = plan_details.description
                     token_data["subscription_id"]  = new_subscription.id
                     token_data["order_details"]  = order_details
                     token = AuthHandler().encode_token(token_data,minutes=2880222222)
@@ -1365,8 +1371,8 @@ async def get_payment_link(request:GetpaymentLink,background_tasks: BackgroundTa
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="The time you were taken has expired!", error=[], data={},code="INVALIED_TOKEN")
         
             
-        customer = db.query(CustomerModal).filter(CustomerModal.id==tokendata["user_id"]).one()
-        if tokendata is not None:
+        customer = db.query(CustomerModal).filter(CustomerModal.id==tokendata["user_id"]).first()
+        if customer is not None:
             tokendata["customer_details"] = { "email":customer.email, "phone":customer.mobile_no,"name":customer.name,"first_name":customer.first_name,"laste_name":customer.last_name }
         return Utility.json_response(status=SUCCESS, message=all_messages.SOMTHING_WRONG, error=[], data=tokendata)
 
@@ -1402,12 +1408,12 @@ async def generate_link(request:paymentSuccessSchema,background_tasks: Backgroun
             if subscription is None: 
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription in not found!", error=[], data={})
             user_id = subscription.customer_id
-            customer = db.query(CustomerModal).filter(CustomerModal.id==user_id).one()
+            customer = db.query(CustomerModal).filter(CustomerModal.id==user_id).first()
             if customer is None: 
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Customer details are not found!", error=[], data={})
             
             plan_id = subscription.plan_id
-            plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==plan_id).one()
+            plan_details = db.query(MdSubscriptionPlansModel).filter(MdSubscriptionPlansModel.id==plan_id).first()
             if plan_details is None: 
                 return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message="Subscription plan details are not found!", error=[], data={})
             

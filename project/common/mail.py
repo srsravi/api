@@ -47,8 +47,8 @@ class Email():
     def send_mail(recipient_email=[], subject='',body="", template='',pdf_template='',data={}):
         
         data["api_base_url"] = f"""{API_URL}media/"""
-        sender_email = "srsravi2024@gmail.com"
-        sender_password = 'sulc bzhl knyx iobz'
+        sender_email = "srravi2024@gmail.com"
+        sender_password = 'mnef qhdp macw knha'
         try:
             # Create the root message
             msg = MIMEMultipart('alternative')

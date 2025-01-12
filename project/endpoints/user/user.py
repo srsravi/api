@@ -1165,8 +1165,12 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
                 temp_item["customer_details"] = Utility.model_to_dict(item.customer)
             if "plan_id" in temp_item and temp_item["plan_id"] is not None:
                 temp_item["plan_details"] = Utility.model_to_dict(item.plan)
+            if "razorpay_signature" in temp_item:
+                del temp_item["razorpay_signature"]
 
-            
+            if "razorpay_payment_id" in temp_item:
+                del temp_item["razorpay_payment_id"]
+
             users_list.append(temp_item)
 
         response_data = {
