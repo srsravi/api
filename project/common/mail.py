@@ -48,7 +48,7 @@ class Email():
         
         data["api_base_url"] = f"""{API_URL}media/"""
         sender_email = "info@tfsfinserv.com"
-        sender_password = 'Reddy@5656'
+        sender_password = 'w7i7Pxq15DFB'
         try:
             # Create the root message
             msg = MIMEMultipart('alternative')
@@ -71,6 +71,7 @@ class Email():
                
             # Send the message via the SMTP server
             server = smtplib.SMTP('smtp.zoho.in', 587)
+            server.set_debuglevel(1)
             server.starttls()
             #server = smtplib.SMTP_SSL('smtp.zoho.com', 465)
             
