@@ -66,7 +66,7 @@ class AdminNotificationModel(BaseModel):
 class CustomerModal(BaseModel):
     __tablename__ = "customers"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tfs_id =  Column(String(30), unique=True, index=True)
+    tfs_id =  Column(String(150), unique=True, index=True)
     referer_id = Column(Integer,default=None)
     first_name = Column(String(50))
     last_name = Column(String(50))
@@ -238,7 +238,7 @@ class SubscriptionModel(BaseModel):
 class LoanapplicationModel(BaseModel):
     __tablename__ = "application_details"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tfs_id = Column(String(20), default=None,nullable=True)
+    tfs_id = Column(String(150), default=None,nullable=True)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), default=None, unique=False, index=True)
     customer_details = relationship("CustomerModal", back_populates="loan_applications_list")
     tenant_id= Column(Integer, default=None,)

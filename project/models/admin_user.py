@@ -10,7 +10,7 @@ class AdminUser(BaseModel):
     __tablename__ = "admin"
     id = Column(Integer, primary_key=True, autoincrement=True)
     details = relationship("AdminUserModel", back_populates="admin_user_details")
-    tfs_id =  Column(String(30), unique=True,index=True)
+    tfs_id =  Column(String(150), unique=True,index=True)
     first_name = Column(String(50))
     last_name = Column(String(50))
     name = Column(String(150), default=None)

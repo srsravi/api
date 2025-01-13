@@ -123,7 +123,7 @@ async def get_enquiry(filter_data: UserFilterRequest,auth_user=Depends(AuthHandl
         }
         return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 @router.post("/enquiry/details", response_description="enquiry details")
@@ -193,7 +193,7 @@ async def update_profile(request: UpdateProfile,auth_user=Depends(AuthHandler().
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -232,7 +232,7 @@ async def update_password(request: UpdatePassword,auth_user=Depends(AuthHandler(
                 return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -679,7 +679,7 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
 
     except Exception as E:
         print("ERROR")
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -787,7 +787,7 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
     except Exception as E:
         print("ERROR")
         AppLogger.error(f"update customer details {str(E)}")
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -868,7 +868,7 @@ async def get_loan_application_details( request: getloanApplicationDetails,auth_
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=application_data,code="")
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -959,7 +959,7 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         return Utility.json_response(status=SUCCESS, message="Loan Application Details successfully retrieved", error=[], data=request,code="")
 
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         AppLogger.error(f"update loan application details {str(E)}")
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -1066,7 +1066,7 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         }
         return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1108,7 +1108,8 @@ async def apply_loan(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().au
 
                 
     except Exception as E:
-        print(E)
+        
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1181,7 +1182,7 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         }
         return Utility.json_response(status=SUCCESS, message="List successfully retrieved", error=[], data=response_data,code="")
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
@@ -1213,6 +1214,6 @@ async def check_payment_status(order: OrderIDRequest, auth_user=Depends(AuthHand
             return Utility.json_response(status=INTERNAL_ERROR, message="Failed to fetch order details", error=[], data={})
             #raise HTTPException(status_code=response.status_code, detail="Failed to fetch order details")
     except Exception as E:
-        print(E)
+        AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
