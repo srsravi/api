@@ -325,7 +325,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
         login_count =0
         if user_obj.count() <= 0:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.EMAIL_NOT_REGISTERED, error=[], data={})
-        user_data = user_obj.one()
+        user_data = user_obj.first()
         
         
         if user_data.status_id !=3:
@@ -884,12 +884,13 @@ async def get_users(filter_data: UserDetailsRequest,auth_user=Depends(AuthHandle
             
         ).filter(AdminUser.id==filter_data.user_id )
         
-        if filter_data.tenant_id:
+        if filter_data.tenant_id and filter_data.tenant_id is not None:
             query = query.filter(AdminUser.tenant_id == filter_data.tenant_id)
         else:
             if "tenant_id" in auth_user:
-                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
-        result = query.one()
+                if auth_user["tenant_id"] is not None:
+                    query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+        result = query.first()
         if result is not None:
             user_data = Utility.model_to_dict(result)
             if "country_id" in user_data:
@@ -933,6 +934,7 @@ async def get_users(filter_data: UserDetailsRequest,auth_user=Depends(AuthHandle
 
         
     except Exception as E:
+        print(str(E))
         AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=EXCEPTION, message="Something went wrong", error=[], data={})
