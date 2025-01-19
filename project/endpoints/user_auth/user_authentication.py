@@ -890,6 +890,78 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 
+@router.post("/resend-activation-link", response_description="Resend Activation Link")
+async def resend_activation_link(request: ForgotPassword,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
+    try:
+
+        if auth_user["role_id"] not in [1,2]:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+
+        
+        email = request.email
+        customer = 0
+        if request.customer:
+            customer = request.customer
+        category ="SIGNUP_CUSTOMER"
+        query = db.query(CustomerModal).filter(CustomerModal.email == email)
+        
+        user_obj = query.first()
+        if auth_user["role_id"]==2:
+            if user_obj.tenant_id != auth_user["tenant_id"]:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+
+        if user_obj is None:
+            return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
+        else:
+            if user_obj.status_id ==2 or user_obj.status_id ==3 :
+                # if user_obj.date_of_birth != date_of_birth:
+                #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.INVALID_BIRTHDATE, error=[], data={},code="")
+                
+                rowData = {}
+                udata = Utility.model_to_dict(user_obj)
+                rowData['user_id'] = udata["id"]
+                rowData['email'] = user_obj.email
+                rowData['first_name'] = user_obj.first_name
+                rowData['last_name'] = user_obj.last_name
+                #rowData['country_id'] = user_obj.country_id
+                #rowData['mobile_no'] = udata.get("mobile_no",'')
+                #rowData['date_of_birth'] = udata.get("date_of_birth",'')
+                rowData['status_id'] = user_obj.status_id            
+                otp =Utility.generate_otp()
+                #db.flush(user_obj) ## Optionally, refresh the instance from the database to get the updated values
+                rowData["otp"] = otp
+                rowData["user_id"] = user_obj.id
+                rowData['name'] = f"""{user_obj.name}"""
+                
+                
+                Utility.inactive_previous_tokens(db=db, catrgory = category, user_id = udata["id"])
+                user_dict={"user_id":udata["id"],"catrgory":category,"otp":otp}
+                token = AuthHandler().encode_token({"catrgory":category,"otp":otp,"role_id":user_obj.role_id,"email":user_obj.email,"name":user_obj.name})
+                user_dict["token"]=token
+                user_dict["ref_id"]=user_obj.id
+                db.add(tokensModel(**user_dict))
+                rowData["reset_link"] =  f'''{WEB_URL}set-customer-password?token={token}&user_id={user_obj.id}&customer={customer}''' #f'''{WEB_URL}forgotPassword?token={token}&user_id={user_obj.id}'''
+                db.commit()
+
+                background_tasks.add_task(Email.send_mail,recipient_email=[user_obj.email], subject="Reset Password link", template='forgot_password.html',data=rowData )               
+                return Utility.json_response(status=SUCCESS, message="Reset Password link is sent to email", error=[], data={"user_id":user_obj.id},code="")
+            
+            elif  user_obj.status_id == 1:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="PROFILE_COMPLATION_PENDING")
+            elif  user_obj.status_id == 2:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="EMAIL_VERIFICATION_PENDING")
+            elif user_obj.status_id == 3:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_INACTIVE, error=[], data={})
+            elif user_obj.status_id == 4:
+                return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.PROFILE_DELETED, error=[], data={})
+            else:
+                db.rollback()
+                return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
+
+    except Exception as E:
+        AppLogger.error(str(E))
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
 
 @router.post("/resend-otp", response_description="Re-send Signup OTP")
 async def resend_otp(request: SignupOtp,background_tasks: BackgroundTasks, db: Session = Depends(get_database_session)):
