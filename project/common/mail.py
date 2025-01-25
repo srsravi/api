@@ -47,8 +47,9 @@ class Email():
     def send_mail(recipient_email=[], subject='',body="", template='',pdf_template='',data={}):
         
         data["api_base_url"] = f"""{API_URL}media/"""
-        sender_email = "info@tfsfinserv.com"
-        sender_password = 'w7i7Pxq15DFB'
+        sender_email = "srsravi2024@gmail.com"
+        sender_password = 'wzsq updn tdin qbsy'
+        smtp_server = 'smtp.zoho.in'
         try:
             # Create the root message
             msg = MIMEMultipart('alternative')
@@ -70,7 +71,7 @@ class Email():
             msg.attach(part2)
                
             # Send the message via the SMTP server
-            server = smtplib.SMTP('smtp.zoho.in', 587)
+            server = smtplib.SMTP(smtp_server, 587)
             server.set_debuglevel(1)
             server.starttls()
             #server = smtplib.SMTP_SSL('smtp.zoho.com', 465)
