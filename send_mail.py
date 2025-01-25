@@ -31,8 +31,8 @@ if __name__ == "__main__":
     subject = "Hello from RAVI!"
     body = "This is a test email sent using Python."
     to_email = "sankojuravi2020@gmail.com"
-    from_email =  "alertsmachint@gmail.com"
-    password = 'vriv avkn afeo tlut'
+    from_email =  "info@tfsfinserv.com"
+    password = 'w7i7Pxq15DFB'
     smtp_server = "smtp.gmail.com"
     port = 587  # For TLS
 
