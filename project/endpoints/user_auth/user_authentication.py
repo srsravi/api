@@ -234,7 +234,8 @@ async def enquiry(request:EnquiryBecomeCustomer,background_tasks: BackgroundTask
                             db.rollback()
                             return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
                     else:
-                        new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=service_type_id,tenant_id=tenant_id)
+                        load_id = Utility.generate_tfs_code("LOAN")
+                        new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=load_id,service_type_id=service_type_id,tenant_id=tenant_id)
                         db.add(new_lead)
                 if configuration is not None:
                     if status_id ==2 and  service_type_id !=1 and new_lead is not None:
@@ -366,7 +367,8 @@ async def invite_customer(request: createCustomerSchema,background_tasks: Backgr
             if user_data.id:
                 details =  CustomerDetailsModel(customer_id=user_data.id,service_type_id=service_type_id)
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}", service_type_id=service_type_id,tenant_id=tenant_id)
+                load_id = Utility.generate_tfs_code("LOAN")
+                new_lead =  LoanapplicationModel(customer_id=user_data.id,tfs_id=load_id, service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 db.add(details)
                 if configuration is not None:
@@ -526,7 +528,8 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
             db.commit()
             if user_data.id:
                 configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==service_type_id,ServiceConfigurationModel.tenant_id==tenant_id).first()
-                new_lead =  LoanapplicationModel(tfs_id=f"{Utility.generate_tfs_code("LOAN")}",customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
+                load_id = Utility.generate_tfs_code("LOAN")
+                new_lead =  LoanapplicationModel(tfs_id=load_id,customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 if configuration is not None:
                     new_lead.salesman_id = configuration.user_id
