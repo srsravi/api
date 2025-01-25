@@ -33,7 +33,7 @@ if __name__ == "__main__":
     to_email = "sankojuravi2020@gmail.com"
     from_email =  "info@tfsfinserv.com"
     password = 'w7i7Pxq15DFB'
-    smtp_server = "smtp.gmail.com"
+    smtp_server = "smtp.zoho.in"
     port = 587  # For TLS
 
     send_email(subject, body, to_email, from_email, password, smtp_server, port)
