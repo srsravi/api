@@ -592,7 +592,8 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
             dbcursor =  CustomerDetailsModel(customer_id=customer_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
             
             configuration =  db.query(ServiceConfigurationModel).filter(ServiceConfigurationModel.service_type_id==request.get("service_type_id",None),ServiceConfigurationModel.tenant_id==tenant_id).first()
-            new_lead =  LoanapplicationModel(customer_id=customer_id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
+            loan_id = Utility.generate_tfs_code("LOAN")
+            new_lead =  LoanapplicationModel(customer_id=customer_id,tfs_id=loan_id,service_type_id=request.get("service_type_id",None),tenant_id=tenant_id)
             db.add(new_lead)
             if configuration is not None: 
                 new_lead.salesman_id = configuration.user_id
@@ -1091,8 +1092,8 @@ async def apply_loan(request: ApplyLoanSchema,auth_user=Depends(AuthHandler().au
         else:
             # if customer.status_id !=3:
             #     return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.CUSTOMER_NOT_ACTIVE, error=[], data={},code="CUSTOMER_NOT_ACTIVE")
-            
-            new_lead =  LoanapplicationModel(customer_id=user_id,tfs_id=f"{Utility.generate_tfs_code("LOAN")}",service_type_id=service_type_id,tenant_id=tenant_id)
+            loan_id = Utility.generate_tfs_code("LOAN")
+            new_lead =  LoanapplicationModel(customer_id=user_id,tfs_id=loan_id,service_type_id=service_type_id,tenant_id=tenant_id)
             if auth_user["role_id"] ==3:
                 new_lead.salesman_id = auth_user["id"]
             if auth_user["role_id"] ==4:

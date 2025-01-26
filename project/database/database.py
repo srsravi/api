@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 #database_url = os.environ.get("DATABASE_URL","mysql+pymysql://ThoshikaFS:Thoshika@FS456@127.0.0.1/tfs_python")
-database_url = os.environ.get("DATABASE_URL","mysql+pymysql://remit_admin:remit_admin@127.0.0.1/tfs_python")
+database_url = os.environ.get("DATABASE_URL","mysql+pymysql://servtfsfin_ThoshikaFS:]FB6=?K#C$dU@127.0.0.1/tfs_python")
 
 engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
