@@ -568,6 +568,7 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
                                       password=str(Utility.uuid()),
                                       tenant_id=tenant_id,
                                       service_type_id=request.get("service_type_id",None),
+                                      date_of_birth = request.get("date_of_birth",None)
                                       )
         db.add(new_customer)
         db.commit()
