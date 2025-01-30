@@ -196,7 +196,9 @@ def get_users(request: getMasterData ,db: Session = Depends(get_database_session
                 elif category=="md_service_types":
                     records = db.query(model).order_by(asc("id")) .all()
                     output[category] =  [Utility.model_to_dict(record) for record in records]
-                
+                elif category=="md_subscription_plans":
+                    records = db.query(model).order_by(asc("id")) .all()
+                    output[category] =  [Utility.model_to_dict(record) for record in records]
                 else:    
                     query = db.query(model)
                     sort_column = getattr(model, "name", None)

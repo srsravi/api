@@ -310,6 +310,7 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
     except Exception as E:
+        print(E)
         AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})

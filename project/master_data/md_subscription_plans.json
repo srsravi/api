@@ -1,25 +1,25 @@
 [
 	{
 		"id": 1,
-		"name": "Avinya",
+		"name": "TFS Gold",
         "desctiption":"",
-		"amount":99,
+		"amount":365,
 		"validity":90
 		
         
 	},
 	{
 		"id": 2,
-		"name": "Avinya Mini",
+		"name": "TFS Platinum",
         "desctiption":"",
-		"amount":299,
-		"validity":180
+		"amount":499,
+		"validity":365
 	},
 	{
 		"id": 3,
-		"name": "Avinya Max",
+		"name": "TFS Diamond",
         "desctiption":"",
-		"amount":599,
-		"validity":365
+		"amount":999,
+		"validity":1460
 	}
 ]
