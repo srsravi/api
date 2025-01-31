@@ -527,7 +527,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
 async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
 
-        if auth_user["role_id"] not in [1,2]:
+        if auth_user["role_id"] not in [1,2,3,4]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
 
         
