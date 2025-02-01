@@ -412,7 +412,20 @@ async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHan
             temp_item["role_details"] = Utility.model_to_dict(item.role_details)
         
         if "created_by" in temp_item and temp_item["created_by"] is not None:
-            temp_item["created_by_details"] = Utility.model_to_dict(item.created_by_details)
+            created_by_details = Utility.model_to_dict(item.created_by_details)
+            created_bydetails = {
+                "id":created_by_details["id"],
+                "first_name":created_by_details["first_name"],
+                "last_name":created_by_details["last_name"],
+                "name":created_by_details["name"],
+                "mobile_no":created_by_details["mobile_no"],
+                "date_of_birth":created_by_details["date_of_birth"],
+                "email":created_by_details["email"],
+                "gender":created_by_details["gender"],
+                "role_id":created_by_details["role_id"],
+
+            }
+            temp_item["created_by_details"] = created_bydetails
 
         if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
             temp_item["service_details"] = Utility.model_to_dict(item.service_details)
@@ -986,6 +999,8 @@ async def applications_list(filter_data: UserFilterRequest,auth_user=Depends(Aut
         )#.join(LoanapplicationModel.customer_details)
         if(auth_user["role_id"] ==5):
             query = query.filter(LoanapplicationModel.customer_id==auth_user["id"])
+        if(auth_user["role_id"] ==4):
+            query = query.filter(or_(LoanapplicationModel.created_by==auth_user["id"],LoanapplicationModel.agent_id==auth_user["id"]))
         
         
         if filter_data.search_string:
