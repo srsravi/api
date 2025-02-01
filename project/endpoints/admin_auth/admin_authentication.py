@@ -726,6 +726,8 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
     try:
         #user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
         #AuthHandler().user_validate(user_obj)
+        
+            
         if auth_user.get("role_id", -1) not in [1,2,3,4]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
         query = db.query(AdminUser).options(
@@ -737,7 +739,10 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
             #joinedload(AdminUser.location_details),
             #joinedload(AdminUser.kyc_status)
         )
-        query = query.filter(AdminUser.id !=auth_user["id"]) 
+        query = query.filter(AdminUser.id !=auth_user["id"])
+        if auth_user.get("role_id", -1)  in [4]:
+            query = query.filter(AdminUser.created_by ==auth_user["id"])
+
         if filter_data.search_string:
             search = f"%{filter_data.search_string}%"
             query = query.filter(
@@ -749,17 +754,19 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
                     AdminUser.tfs_id.ilike(search)
                 )
             )
-        if filter_data.tenant_id:
-            query = query.filter(AdminUser.tenant_id.in_(filter_data.tenant_id))
-        else:
-            if auth_user.get("role_id", -1) in [2] and "tenant_id" in auth_user:
-                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+        if "tenant_id" in auth_user:
+                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])    
+        elif filter_data.tenant_id:
+            if filter_data.tenant_id is not None:
+                query = query.filter(AdminUser.tenant_id.in_(filter_data.tenant_id))
+       
 
         if filter_data.role_id:
             query = query.filter(AdminUser.role_id.in_(filter_data.role_id))
         if filter_data.status_ids:
             query = query.filter(AdminUser.status_id.in_(filter_data.status_ids))
         
+
         # Total count of users matching the filters
         total_count = query.count()
         sort_column = getattr(AdminUser, filter_data.sort_by, None)
