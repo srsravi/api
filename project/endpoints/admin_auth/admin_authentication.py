@@ -310,7 +310,6 @@ async def reset_password(request: resetPassword,background_tasks: BackgroundTask
             return Utility.json_response(status=SUCCESS, message=all_messages.RESET_PASSWORD_SUCCESS, error=[], data={"user_id":user_obj.id,"email":user_obj.email},code="")
         
     except Exception as E:
-        print(E)
         AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -416,6 +415,14 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                         db.commit()
                     else:        
                         return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.ACCOUNT_LOCKED, error=[], data={})
+                if "passport" in user_dict:
+                        del user_dict["passport"]
+                if "aadhaar_card" in user_dict:
+                    del user_dict["aadhaar_card"]
+                if "selfie" in user_dict:
+                    del user_dict["selfie"]
+                if "upload_check" in user_dict:
+                    del user_dict["upload_check"]            
                 login_token = AuthHandler().encode_token(user_dict, 1200)
                 if not login_token:
                     # return Utility.json_response(status=FAIL, message=all_messages.INVALIED_CREDENTIALS, error=[], data={})
@@ -443,7 +450,16 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                     if "login_attempt_date" in user_dict:
                         del user_dict["login_attempt_date"]
                     if "login_token" in user_dict:
-                        del user_dict["login_token"]    
+                        del user_dict["login_token"]
+                    if "passport" in user_dict:
+                        del user_dict["passport"]
+                    if "aadhaar_card" in user_dict:
+                        del user_dict["aadhaar_card"]
+                    if "selfie" in user_dict:
+                        del user_dict["selfie"]
+                    if "upload_check" in user_dict:
+                        del user_dict["upload_check"]
+                            
                     user_dict["token"] = login_token
                     if user_data.date_of_birth is not None:
                         user_dict["date_of_birth"] = str(user_data.date_of_birth)
@@ -452,6 +468,7 @@ def login(request: Login, background_tasks:BackgroundTasks,db: Session = Depends
                     return Utility.dict_response(status=SUCCESS, message=all_messages.SUCCESS_LOGIN, error=[], data=user_dict)
 
     except Exception as E:
+        print(E)
         AppLogger.error(str(E))
         db.rollback()
         return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})
@@ -527,7 +544,7 @@ async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTa
 async def forgot_password(request: ForgotPassword,background_tasks: BackgroundTasks,auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
 
-        if auth_user["role_id"] not in [1,2]:
+        if auth_user["role_id"] not in [1,2,3,4]:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
 
         
