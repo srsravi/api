@@ -1269,9 +1269,9 @@ async def enquiry(request:createSubscriberSchema,background_tasks: BackgroundTas
                 user_data.created_by = user_id
                 if role_id == 3:
                     user_data.salesman_id = user_id
-                if role_id == 4:
+                elif role_id == 4:
                     user_data.agent_id = user_id
-                if (configuration is not None) and role_id != 3:                
+                elif configuration is not None:                
                         user_data.salesman_id = configuration.user_id    
                                            
                 # this is subscription Functionality
