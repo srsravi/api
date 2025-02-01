@@ -507,6 +507,8 @@ async def get_customer_details( request: getCustomerDetails,auth_user=Depends(Au
             del applicant_details["password"]
             customer_details ={}
             customer_details["applicant_details"] = applicant_details
+            if customer.service_details:
+                customer_details["applicant_details"]["detail_of_service"] = Utility.model_to_dict(customer.service_details)
             return Utility.json_response(status=SUCCESS, message=all_messages.CUSTOMER_DETAILS_NOT_FOUND, error=[], data=customer_details,code="CUSTOMER_DETAILS_NOT_FOUND")
 
         application_data = Utility.model_to_dict(dbcursor)
