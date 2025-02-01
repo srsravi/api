@@ -532,8 +532,18 @@ async def register_customer(request: createCustomerSchema,background_tasks: Back
                 new_lead =  LoanapplicationModel(tfs_id=load_id,customer_id=user_data.id,service_type_id=service_type_id,tenant_id=tenant_id)
                 db.add(new_lead)
                 if configuration is not None:
-                    new_lead.salesman_id = configuration.user_id
-                    user_data.salesman_id = configuration.user_id
+                    salsmen_details =db.query(AdminUser).filter(AdminUser.id==configuration.user_id).first()
+                    if salsmen_details is not None:
+                        new_lead.salesman_id = configuration.user_id
+                        new_lead.created_by = configuration.user_id
+                        new_lead.tenant_id = configuration.tenant_id
+
+                        user_data.salesman_id = configuration.user_id
+                        user_data.created_by = configuration.user_id
+                        user_data.tenant_id = configuration.tenant_id
+                        
+                    
+
                    
                 user_data.tfs_id = f"{Utility.generate_tfs_code(5)}{user_data.id}"
                 udata =  Utility.model_to_dict(user_data)

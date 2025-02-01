@@ -29,14 +29,14 @@ class UpdateProfile(BaseModel):
     @field_validator('first_name', mode='before')
     def validate_first_name(cls, v, info):
         v = v.strip()
-        if not re.match(r'^[A-Za-z]+$', v):
+        if not re.match(r'^[A-Za-z ]+$', v):
             raise ValueError('First name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
         return v
     
     @field_validator('last_name', mode='before')
     def validate_last_name(cls, v, info):
         v = v.strip()
-        if not re.match(r'^[A-Za-z]+$', v):
+        if not re.match(r'^[A-Za-z ]+$', v):
             raise ValueError('Last name must only contain alphabetic characters and cannot include numbers, special characters, or spaces.')
         return v
 
