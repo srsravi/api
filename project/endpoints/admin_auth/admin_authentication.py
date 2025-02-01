@@ -654,7 +654,8 @@ async def reset_password(request: UpdateAdminStatus,background_tasks: Background
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
         query = db.query(AdminUser).filter(AdminUser.id == user_id)
         if "tenant_id" in auth_user:
-            query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
+            if auth_user["tenant_id"] is not None:
+                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])
         user_obj = query.first()
         if user_obj is None:
             return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="USER_NOT_EXISTS")
@@ -755,7 +756,8 @@ async def get_users(filter_data: UserFilterRequest,auth_user=Depends(AuthHandler
                 )
             )
         if "tenant_id" in auth_user:
-                query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])    
+                if auth_user["tenant_id"] is not None:
+                    query = query.filter(AdminUser.tenant_id == auth_user["tenant_id"])    
         elif filter_data.tenant_id:
             if filter_data.tenant_id is not None:
                 query = query.filter(AdminUser.tenant_id.in_(filter_data.tenant_id))
