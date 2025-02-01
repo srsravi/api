@@ -199,6 +199,7 @@ class CustomerDetailsModel(BaseModel):
     eligible = Column(String(5), nullable=True, default="No" )
     loan_eligible_type =Column(Integer, nullable=True, default=None )
     loan_eligible_amount =  Column(Numeric(10, 2), default=None ,nullable=True)
+    proposed_emi =  Column(Numeric(10, 2), default=None ,nullable=True)
     fdir = Column(Text, nullable=True, default=None )
     description = Column(Text, default=None, comment="description")
 
@@ -302,6 +303,7 @@ class LoanapplicationModel(BaseModel):
     eligible = Column(String(5), nullable=True, default="No" )
     loan_eligible_type =Column(Integer, nullable=True, default=None )
     loan_eligible_amount =  Column(Numeric(10, 2), default=None ,nullable=True)
+    proposed_emi =  Column(Numeric(10, 2), default=None ,nullable=True)
     fdir = Column(Text, nullable=True, default=None )
     description = Column(Text, default=None, comment="description")
 

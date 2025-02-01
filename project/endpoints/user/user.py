@@ -680,9 +680,11 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
         dbcursor.description=request.get("description",None)
         dbcursor.loan_eligible_type= None
         dbcursor.loan_eligible_amount= None
+        dbcursor.proposed_emi=None
         if request.get("eligible","No")=="Yes":
             dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
             dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+            dbcursor.proposed_emi=request.get("proposed_emi",None)
 
         #SEP Column fields
         #income_type_id
@@ -787,9 +789,11 @@ async def update_customer_details( request: Dict,auth_user=Depends(AuthHandler()
         dbcursor.description=request.get("description",None)
         dbcursor.loan_eligible_type= None
         dbcursor.loan_eligible_amount= None
+        dbcursor.proposed_emi=None
         if request.get("eligible","No")=="Yes":
             dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
             dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+            dbcursor.proposed_emi=request.get("proposed_emi",None)
 
         #SEP Column fields
         #income_type_id
@@ -961,9 +965,11 @@ async def update_loan_application_details( request: Dict,auth_user=Depends(AuthH
         dbcursor.description=request.get("description",None)
         dbcursor.loan_eligible_type= None
         dbcursor.loan_eligible_amount= None
+        dbcursor.proposed_emi= None
         if request.get("eligible","No")=="Yes":
             dbcursor.loan_eligible_type=request.get("loan_eligible_type",None)
             dbcursor.loan_eligible_amount=request.get("loan_eligible_amount",None)
+            dbcursor.proposed_emi=request.get("proposed_emi",None)
 
         #SEP Column fields
         #income_type_id
