@@ -65,7 +65,8 @@ class ListRequestBase(BaseModel):
 
 class TicketRequest(BaseModel):
     # id:int
-    user_id:int
+    #user_id:int
+    subject:str
     description:str
 
 

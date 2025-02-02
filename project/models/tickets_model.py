@@ -12,7 +12,8 @@ class TicketsModel(BaseModel):
     __tablename__ = "tickets"
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer,index=True,nullable=False,unique=False)
-    description = Column(Text)
+    subject =  Column(String(250),index=True,nullable=False,unique=False)
+    description = Column(Text(55000))
     reference=Column(String(150))
    
 

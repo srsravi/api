@@ -36,33 +36,35 @@ router = APIRouter(
 def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, auth_user=Depends(AuthHandler().auth_wrapper), db: Session = Depends(get_database_session)):
     try:
         #print(auth_user["tenant_details"]["email"])
-        if auth_user["role_id"] !=2:            
-            return Utility.json_response(status=500, message=all_messages.NO_PERMISSIONS, error=[], data={},code="LOGOUT_ACCOUNT")            
+        # if auth_user["role_id"] !=2:            
+        #     return Utility.json_response(status=500, message=all_messages.NO_PERMISSIONS, error=[], data={},code="LOGOUT_ACCOUNT")            
         
         user_id = auth_user["id"]
         description=request.description
+        subject = request.subject
         user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
         
         user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
         if user_obj is None:            
             return Utility.json_response(status=500, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="LOGOUT_ACCOUNT")            
-        elif user_obj.role_id !=2:            
-            return Utility.json_response(status=500, message=all_messages.NO_PERMISSIONS, error=[], data={},code="LOGOUT_ACCOUNT")            
-        elif user_obj.status_id == 1:
-                return Utility.json_response(status=500, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif user_obj.role_id !=2:            
+        #     return Utility.json_response(status=500, message=all_messages.NO_PERMISSIONS, error=[], data={},code="LOGOUT_ACCOUNT")            
+        # elif user_obj.status_id == 1:
+        #         return Utility.json_response(status=500, message=all_messages.PENDING_PROFILE_COMPLATION, error=[], data={},code="LOGOUT_ACCOUNT")
         
-        elif user_obj.status_id == 2:
-            return Utility.json_response(status=500, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="LOGOUT_ACCOUNT")            
-        elif user_obj.status_id == 4:
-            return Utility.json_response(status=500, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")            
-        elif user_obj.status_id == 5:
-            return Utility.json_response(status=500, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+        # elif user_obj.status_id == 2:
+        #     return Utility.json_response(status=500, message=all_messages.PENDING_EMAIL_VERIFICATION, error=[], data={},code="LOGOUT_ACCOUNT")            
+        # elif user_obj.status_id == 4:
+        #     return Utility.json_response(status=500, message=all_messages.PROFILE_INACTIVE, error=[], data={},code="LOGOUT_ACCOUNT")            
+        # elif user_obj.status_id == 5:
+        #     return Utility.json_response(status=500, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
+        
         reference = Utility.uuid()
-        ticket_data = TicketsModel(user_id=user_id,description=description,reference= reference)
+        ticket_data = TicketsModel(user_id=user_id,subject =subject, description=description,reference= reference)
         db.add(ticket_data)
         db.commit()
         #Send acknowledge mail to user 
-        mail_data = {"user_name":user_obj.first_name +" "+user_obj.last_name,"description":description,"mail_to":"user","reference":reference}
+        mail_data = {"user_name":user_obj.first_name +" "+user_obj.last_name,"subject":subject,"description":description,"mail_to":"user","reference":reference}
         background_tasks.add_task(Email.send_mail, recipient_email=[user_obj.email], subject="Ticket Acknowledge", template='ticket_created.html',data=mail_data )
        
         #Send mail to tenant admin
@@ -71,7 +73,7 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
             if auth_user["tenant_details"].get("email",False):
                 admin_id = auth_user["tenant_details"]["id"]
                 
-                admin_mail_data = {"user_name":user_obj.first_name +" "+user_obj.last_name, "admin_name":auth_user["tenant_details"]["name"],"description":description,"mail_to":"admin","reference":reference}
+                admin_mail_data = {"user_name":user_obj.first_name +" "+user_obj.last_name, "admin_name":auth_user["tenant_details"]["name"],"subject":subject, "description":description,"mail_to":"admin","reference":reference}
                 background_tasks.add_task(Email.send_mail,recipient_email=[auth_user["tenant_details"]["email"]], subject="Ticket Created", template='ticket_created.html',data=admin_mail_data )
             if ticket_data.id:
                 admin_notification = AdminNotificationModel(user_id=user_id,admin_id=admin_id,description=description,category="TICKET",ref_id=ticket_data.id)
