@@ -85,8 +85,8 @@ class TicketRequest(BaseModel):
 
 class TicketListRequest(ListRequestBase):
     # id:int
-    user_id:int
-    description:str
+    user_id:Optional[int] =None
+    description:Optional[str]=""
 
 
 class TicketResponse(BaseModel):

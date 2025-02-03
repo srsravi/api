@@ -96,20 +96,20 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
 @router.post("/ticketRequest-list", response_model=PaginatedTicketResponse, response_description="Fetch ticket List")
 async def get_users(filter_data: TicketListRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
 
-    if auth_user.get("role_id", -1) not in [1]:
-        return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+    # if auth_user.get("role_id", -1) not in [1]:
+    #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
 
     
     query = db.query(TicketsModel)
 
-    if filter_data.user_id:
-        search = f"%{filter_data.user_id}%"
-        query = query.filter(
-            or_(
-                TicketsModel.created_by_user_id.ilike(search)
+    # if filter_data.user_id:
+    #     search = f"%{filter_data.user_id}%"
+    #     query = query.filter(
+    #         or_(
+    #             TicketsModel.created_by_user_id.ilike(search)
                 
-            )
-        )
+    #         )
+    #     )
 
     if filter_data.search_string:
         search = f"%{filter_data.search_string}%"
