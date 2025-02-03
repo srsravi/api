@@ -60,12 +60,18 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
         # elif user_obj.status_id == 5:
         #     return Utility.json_response(status=500, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
         
-        reference = Utility.uuid()
+        reference = Utility.generate_tfs_code("SUPPORT_TICKET")
         ticket_data = TicketsModel(subject =subject, description=description,reference= reference)
         if auth_user["role_id"] ==5: 
             ticket_data.created_by_user_id = user_id
         else:
             ticket_data.created_by_admin_id = user_id
+        if "tenant_id" in auth_user:
+            if auth_user["tenant_id"]  is not None:
+                ticket_data.tenant_id = auth_user["tenant_id"]
+        elif request.tenant_id is not None:
+            ticket_data.tenant_id = request.tenant_id
+            
 
         db.add(ticket_data)
         db.commit()
@@ -95,54 +101,85 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
 
 @router.post("/ticketRequest-list", response_model=PaginatedTicketResponse, response_description="Fetch ticket List")
 async def get_users(filter_data: TicketListRequest,auth_user=Depends(AuthHandler().auth_wrapper),db: Session = Depends(get_database_session)):
+    try:
+        # if auth_user.get("role_id", -1) not in [1]:
+        #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
 
-    # if auth_user.get("role_id", -1) not in [1]:
-    #     return Utility.json_response(status=BUSINESS_LOGIG_ERROR, message=all_messages.NO_PERMISSIONS, error=[], data={},code="NO_PERMISSIONS")
+        tenant_id = None
+        query = db.query(TicketsModel)
+        if auth_user["role_id"] ==5:
+            
+            query = query.filter( TicketsModel.created_by_user_id == auth_user["id"] )
+        elif auth_user["role_id"] ==4:
+            query = query.filter( TicketsModel.created_by_admin_id == auth_user["id"] )
+        if "tenant_id" in auth_user:
+            if auth_user["tenant_id"]  is not None:
+                query = query.filter( TicketsModel.tenant_id == auth_user["tenant_id"] )
+        elif filter_data.tenant_id is not None:
+            query = query.filter( TicketsModel.tenant_id == filter_data.tenant_id )
 
-    
-    query = db.query(TicketsModel)
+        if filter_data.search_string:
+            search = f"%{filter_data.search_string}%"
+            query = query.filter( or_(
+                 TicketsModel.description.ilike(search),
+                 TicketsModel.subject.ilike(search),
+                  TicketsModel.reference.ilike(search)
+                 
+                                       ) )   
+        # if filter_data.created_on and filter_data.created_to and ( isinstance(filter_data.created_on, date) and isinstance(filter_data.created_to, date)):
+        #     query = query.filter(TicketsModel.created_on > filter_data.created_on)
+        #     query = query.filter(TicketsModel.created_on < filter_data.created_to)
+        
+        # Total count of users matching the filters
+        total_count = query.count()
+        print(total_count)
+        sort_column = getattr(TicketsModel, str(filter_data.sort_by), None)
+        query = query.order_by(desc(sort_column))
 
-    # if filter_data.user_id:
-    #     search = f"%{filter_data.user_id}%"
-    #     query = query.filter(
-    #         or_(
-    #             TicketsModel.created_by_user_id.ilike(search)
-                
-    #         )
-    #     )
-
-    if filter_data.search_string:
-        search = f"%{filter_data.search_string}%"
-        query = query.filter(
-            or_(
-                TicketsModel.description.ilike(search)
-                
-            )
-        )   
-    if filter_data.created_on and filter_data.created_to and ( isinstance(filter_data.created_on, date) and isinstance(filter_data.created_to, date)):
-        query = query.filter(TicketsModel.created_on > filter_data.created_on)
-        query = query.filter(TicketsModel.created_on < filter_data.created_to)
-      
-     # Total count of users matching the filters
-    total_count = query.count()
-    sort_column = getattr(TicketsModel, str(filter_data.user_id), None)
-    query = query.order_by(desc(sort_column))
-
-    if sort_column:
-        if filter_data.sort_order == "desc":
-            query = query.order_by(desc(sort_column))
+        if sort_column:
+            if filter_data.sort_order == "desc":
+                query = query.order_by(desc(sort_column))
+            else:
+                query = query.order_by(asc(sort_column))
         else:
-            query = query.order_by(asc(sort_column))
-    else:
-        query = query.order_by(desc("id"))
+            query = query.order_by(desc("id"))
 
-    # Apply pagination
-    offset = (filter_data.page - 1) * filter_data.per_page
-    paginated_query = query.offset(offset).limit(filter_data.per_page).all()
-    # Create a paginated response
-    return PaginatedTicketResponse(
-        total_count=total_count,
-        list=paginated_query,
-        page=filter_data.page,
-        per_page=filter_data.per_page
-    )
+        # Apply pagination
+        offset = (filter_data.page - 1) * filter_data.per_page
+        paginated_query = query.offset(offset).limit(filter_data.per_page).all()
+        lst =[]
+        for item in paginated_query:
+            dct = Utility.model_to_dict(item)
+            if item.created_by_admin_id:
+                
+                created_by_admin_details = Utility.model_to_dict(item.created_by_admin_details)
+                dct["created_by_details"] = {
+                    "first_name":created_by_admin_details["first_name"],
+                    "last_name":created_by_admin_details["last_name"],
+                    "name":created_by_admin_details["name"],
+                    "email":created_by_admin_details["email"],
+                    "mobile_no":created_by_admin_details["mobile_no"],
+                    "id":created_by_admin_details["id"],
+                     "role_id":created_by_admin_details["role_id"],
+                }
+            if item.created_by_user_id:
+                
+                created_by_details = Utility.model_to_dict(item.created_by_details)
+                dct["created_by_details"] = {
+                    "first_name":created_by_details["first_name"],
+                    "last_name":created_by_details["last_name"],
+                    "name":created_by_details["name"],
+                    "email":created_by_details["email"],
+                    "mobile_no":created_by_details["mobile_no"],
+                    "id":created_by_details["id"],
+                     "role_id":created_by_details["role_id"],
+                }    
+            lst.append(dct)
+        # Create a paginated response
+        response_data = { "total_count":total_count, "list":lst,  "page":filter_data.page,  "per_page":filter_data.per_page }
+        return Utility.json_response(status=SUCCESS, message="Successfully retrieved", error=[], data=response_data,code="")
+        
+    except Exception as E:
+        
+        db.rollback()
+        return Utility.json_response(status=INTERNAL_ERROR, message=all_messages.SOMTHING_WRONG, error=[], data={})

@@ -20,7 +20,7 @@ class TicketsModel(BaseModel):
     subject = Column(String(250), index=True, nullable=False)
     description = Column(Text, nullable=True)
     reference = Column(String(150), nullable=True)
-    
+    tenant_id = Column(Integer, nullable=True, default=None)
     ticketcomments = relationship("TicketCommentsModel", back_populates="ticket_details")
 
 class TicketCommentsModel(BaseModel):

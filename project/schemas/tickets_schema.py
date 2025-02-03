@@ -68,6 +68,7 @@ class TicketRequest(BaseModel):
     user_id:Optional[int]= None
     description:str
     subject:str
+    tenant_id:Optional[int]= None
 
 
 
@@ -87,6 +88,7 @@ class TicketListRequest(ListRequestBase):
     # id:int
     user_id:Optional[int] =None
     description:Optional[str]=""
+    tenant_id:Optional[int] =None
 
 
 class TicketResponse(BaseModel):

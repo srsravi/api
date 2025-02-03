@@ -1,8 +1,8 @@
-"""Init
+"""tickets
 
-Revision ID: 1bd73af48795
+Revision ID: ddc6db8a64e0
 Revises: 
-Create Date: 2025-01-05 10:32:41.368419
+Create Date: 2025-02-03 07:20:59.939812
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1bd73af48795'
+revision: str = 'ddc6db8a64e0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -205,16 +205,6 @@ def upgrade() -> None:
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('tickets',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('reference', sa.String(length=150), nullable=True),
-    sa.Column('created_on', sa.DateTime(), nullable=True),
-    sa.Column('updated_on', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_tickets_user_id'), 'tickets', ['user_id'], unique=False)
     op.create_table('tokens',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('ref_id', sa.Integer(), nullable=False),
@@ -229,7 +219,7 @@ def upgrade() -> None:
     )
     op.create_table('admin',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('tfs_id', sa.String(length=30), nullable=True),
+    sa.Column('tfs_id', sa.String(length=150), nullable=True),
     sa.Column('first_name', sa.String(length=50), nullable=True),
     sa.Column('last_name', sa.String(length=50), nullable=True),
     sa.Column('name', sa.String(length=150), nullable=True),
@@ -327,7 +317,7 @@ def upgrade() -> None:
     )
     op.create_table('customers',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('tfs_id', sa.String(length=30), nullable=True),
+    sa.Column('tfs_id', sa.String(length=150), nullable=True),
     sa.Column('referer_id', sa.Integer(), nullable=True),
     sa.Column('first_name', sa.String(length=50), nullable=True),
     sa.Column('last_name', sa.String(length=50), nullable=True),
@@ -361,6 +351,7 @@ def upgrade() -> None:
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('accepted_terms', sa.Boolean(), nullable=True),
     sa.Column('current_plan_id', sa.Integer(), nullable=True),
+    sa.Column('current_subscription_id', sa.Integer(), nullable=True),
     sa.Column('created_on', sa.DateTime(), nullable=True),
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['created_by'], ['admin.id'], ),
@@ -405,7 +396,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_admin_notificatuions_user_id'), 'admin_notificatuions', ['user_id'], unique=False)
     op.create_table('application_details',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('tfs_id', sa.String(length=20), nullable=True),
+    sa.Column('tfs_id', sa.String(length=150), nullable=True),
     sa.Column('customer_id', sa.Integer(), nullable=True),
     sa.Column('tenant_id', sa.Integer(), nullable=True),
     sa.Column('service_type_id', sa.Integer(), nullable=True),
@@ -417,30 +408,30 @@ def upgrade() -> None:
     sa.Column('sepType', sa.String(length=20), nullable=True),
     sa.Column('companyName', sa.String(length=55), nullable=True),
     sa.Column('designation', sa.String(length=55), nullable=True),
-    sa.Column('totalExperience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
-    sa.Column('present_organization_years', sa.Integer(), nullable=True),
+    sa.Column('totalExperience', sa.Numeric(precision=10, scale=2), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
+    sa.Column('present_organization_years', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('workLocation', sa.String(length=55), nullable=True),
-    sa.Column('grossSalary', sa.Float(), nullable=True, comment='gross salary'),
-    sa.Column('netSalary', sa.Float(), nullable=True, comment='net salary'),
+    sa.Column('grossSalary', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('netSalary', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('otherIncome', sa.String(length=6), nullable=True, comment='net salary'),
     sa.Column('Obligations', sa.String(length=6), nullable=True, comment='Obligations'),
     sa.Column('other_income_list', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
-    sa.Column('obligations_per_month', sa.Integer(), nullable=True),
-    sa.Column('number_of_years', sa.Integer(), nullable=True),
+    sa.Column('obligations_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('number_of_years', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('location', sa.String(length=55), nullable=True),
     sa.Column('last_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('last_year_turnover_amount', sa.Integer(), nullable=True),
-    sa.Column('last_year_itr', sa.Integer(), nullable=True),
-    sa.Column('lastYearITRamount', sa.Integer(), nullable=True),
+    sa.Column('last_year_turnover_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('last_year_itr', sa.String(length=55), nullable=True),
+    sa.Column('lastYearITRamount', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('current_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('current_year_turnover_amount', sa.Integer(), nullable=True),
-    sa.Column('current_year_itr', sa.Integer(), nullable=True),
-    sa.Column('presentYearITRamount', sa.Integer(), nullable=True),
-    sa.Column('avg_income_per_month', sa.Integer(), nullable=True),
+    sa.Column('current_year_turnover_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('current_year_itr', sa.String(length=55), nullable=True),
+    sa.Column('presentYearITRamount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('avg_income_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
     sa.Column('all_obligations', sa.Text(), nullable=True),
-    sa.Column('total_obligation_amount_per_month', sa.Float(), nullable=True),
+    sa.Column('total_obligation_amount_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('coapplicant_data', sa.Text(), nullable=True, comment='Json Stringify data'),
     sa.Column('agent_id', sa.Integer(), nullable=True),
     sa.Column('salesman_id', sa.Integer(), nullable=True),
@@ -448,7 +439,8 @@ def upgrade() -> None:
     sa.Column('loan_approved_by', sa.Integer(), nullable=True),
     sa.Column('eligible', sa.String(length=5), nullable=True),
     sa.Column('loan_eligible_type', sa.Integer(), nullable=True),
-    sa.Column('loan_eligible_amount', sa.Integer(), nullable=True),
+    sa.Column('loan_eligible_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('proposed_emi', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('fdir', sa.Text(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True, comment='description'),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -479,30 +471,30 @@ def upgrade() -> None:
     sa.Column('sepType', sa.String(length=20), nullable=True),
     sa.Column('companyName', sa.String(length=55), nullable=True),
     sa.Column('designation', sa.String(length=55), nullable=True),
-    sa.Column('totalExperience', sa.Float(), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
-    sa.Column('present_organization_years', sa.Integer(), nullable=True),
+    sa.Column('totalExperience', sa.Numeric(precision=10, scale=2), nullable=True, comment='Total work experience in years (e.g., 1.5 for one and a half years)'),
+    sa.Column('present_organization_years', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('workLocation', sa.String(length=55), nullable=True),
-    sa.Column('grossSalary', sa.Float(), nullable=True, comment='gross salary'),
-    sa.Column('netSalary', sa.Float(), nullable=True, comment='net salary'),
+    sa.Column('grossSalary', sa.Numeric(precision=10, scale=2), nullable=True, comment='gross salary'),
+    sa.Column('netSalary', sa.Numeric(precision=10, scale=2), nullable=True, comment='net salary'),
     sa.Column('otherIncome', sa.String(length=6), nullable=True, comment='net salary'),
     sa.Column('Obligations', sa.String(length=6), nullable=True, comment='Obligations'),
     sa.Column('other_income_list', sa.Text(), nullable=True, comment="JSON stringified list of income sources, e.g., [{'income_type':'job','income':20},{'income_type':'rental','income':10}]"),
-    sa.Column('obligations_per_month', sa.Integer(), nullable=True),
-    sa.Column('number_of_years', sa.Integer(), nullable=True),
+    sa.Column('obligations_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('number_of_years', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('location', sa.String(length=55), nullable=True),
     sa.Column('last_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('last_year_turnover_amount', sa.Integer(), nullable=True),
-    sa.Column('last_year_itr', sa.Integer(), nullable=True),
-    sa.Column('lastYearITRamount', sa.Integer(), nullable=True),
+    sa.Column('last_year_turnover_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('last_year_itr', sa.String(length=55), nullable=True),
+    sa.Column('lastYearITRamount', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('current_turnover_year', sa.String(length=55), nullable=True),
-    sa.Column('current_year_turnover_amount', sa.Integer(), nullable=True),
-    sa.Column('current_year_itr', sa.Integer(), nullable=True),
-    sa.Column('presentYearITRamount', sa.Integer(), nullable=True),
-    sa.Column('avg_income_per_month', sa.Integer(), nullable=True),
+    sa.Column('current_year_turnover_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('current_year_itr', sa.String(length=55), nullable=True),
+    sa.Column('presentYearITRamount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('avg_income_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('other_obligation', sa.Text(), nullable=True, comment='Optional details of other financial obligations as a JSON stringified list of dictionaries.'),
     sa.Column('income_type_id', sa.Integer(), nullable=True),
     sa.Column('all_obligations', sa.Text(), nullable=True),
-    sa.Column('total_obligation_amount_per_month', sa.Integer(), nullable=True),
+    sa.Column('total_obligation_amount_per_month', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('coapplicant_data', sa.Text(), nullable=True, comment='Json Stringify data'),
     sa.Column('agent_id', sa.Integer(), nullable=True),
     sa.Column('salesman_id', sa.Integer(), nullable=True),
@@ -510,7 +502,8 @@ def upgrade() -> None:
     sa.Column('loan_approved_by', sa.Integer(), nullable=True),
     sa.Column('eligible', sa.String(length=5), nullable=True),
     sa.Column('loan_eligible_type', sa.Integer(), nullable=True),
-    sa.Column('loan_eligible_amount', sa.Integer(), nullable=True),
+    sa.Column('loan_eligible_amount', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('proposed_emi', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('fdir', sa.Text(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True, comment='description'),
     sa.Column('updated_by', sa.Integer(), nullable=True),
@@ -534,10 +527,11 @@ def upgrade() -> None:
     sa.Column('start_date', sa.DateTime(), nullable=True),
     sa.Column('end_date', sa.DateTime(), nullable=True),
     sa.Column('payment_status', sa.String(length=100), nullable=True),
-    sa.Column('payment_amount', sa.Float(), nullable=True),
+    sa.Column('payment_amount', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('invoice_id', sa.String(length=100), nullable=True),
     sa.Column('razorpay_order_id', sa.String(length=100), nullable=True),
     sa.Column('razorpay_payment_id', sa.String(length=100), nullable=True),
+    sa.Column('razorpay_signature', sa.String(length=800), nullable=True),
     sa.Column('status', sa.Boolean(), nullable=True, comment='Is status ==True plan is active, if False == plan inactive'),
     sa.Column('payment_link', sa.Text(), nullable=True),
     sa.Column('tenant_id', sa.Integer(), nullable=True),
@@ -552,6 +546,19 @@ def upgrade() -> None:
     op.create_index(op.f('ix_subscriptions_payment_link'), 'subscriptions', ['payment_link'], unique=False)
     op.create_index(op.f('ix_subscriptions_razorpay_order_id'), 'subscriptions', ['razorpay_order_id'], unique=False)
     op.create_index(op.f('ix_subscriptions_razorpay_payment_id'), 'subscriptions', ['razorpay_payment_id'], unique=False)
+    op.create_table('tickets',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('created_by_user_id', sa.Integer(), nullable=True),
+    sa.Column('subject', sa.String(length=250), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('reference', sa.String(length=150), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by_user_id'], ['customers.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_tickets_created_by_user_id'), 'tickets', ['created_by_user_id'], unique=False)
+    op.create_index(op.f('ix_tickets_subject'), 'tickets', ['subject'], unique=False)
     op.create_table('user_notificatuions',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
@@ -567,13 +574,29 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_user_notificatuions_user_id'), 'user_notificatuions', ['user_id'], unique=False)
+    op.create_table('ticket_comments',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('ticket_id', sa.Integer(), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('reference', sa.String(length=150), nullable=True),
+    sa.Column('created_on', sa.DateTime(), nullable=True),
+    sa.Column('updated_on', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['ticket_id'], ['tickets.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_ticket_comments_ticket_id'), 'ticket_comments', ['ticket_id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_ticket_comments_ticket_id'), table_name='ticket_comments')
+    op.drop_table('ticket_comments')
     op.drop_index(op.f('ix_user_notificatuions_user_id'), table_name='user_notificatuions')
     op.drop_table('user_notificatuions')
+    op.drop_index(op.f('ix_tickets_subject'), table_name='tickets')
+    op.drop_index(op.f('ix_tickets_created_by_user_id'), table_name='tickets')
+    op.drop_table('tickets')
     op.drop_index(op.f('ix_subscriptions_razorpay_payment_id'), table_name='subscriptions')
     op.drop_index(op.f('ix_subscriptions_razorpay_order_id'), table_name='subscriptions')
     op.drop_index(op.f('ix_subscriptions_payment_link'), table_name='subscriptions')
@@ -600,8 +623,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_admin_tenant_id'), table_name='admin')
     op.drop_table('admin')
     op.drop_table('tokens')
-    op.drop_index(op.f('ix_tickets_user_id'), table_name='tickets')
-    op.drop_table('tickets')
     op.drop_table('tenants')
     op.drop_table('md_user_status')
     op.drop_index(op.f('ix_md_user_roles_name'), table_name='md_user_roles')
