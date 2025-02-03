@@ -126,6 +126,8 @@ class CustomerModal(BaseModel):
     current_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
     subscription = relationship('SubscriptionModel', back_populates='customer')
     current_subscription_id =Column(Integer,nullable=True, default=None)
+    all_tickets = relationship("TicketsModel", back_populates="created_by_details")
+    my_comments_ticket = relationship("TicketCommentsModel", back_populates="user_details")
     class Config:
         from_attributes = True
         str_strip_whitespace = True

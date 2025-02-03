@@ -21,6 +21,7 @@ import json
 from ...models.user_model import AdminNotificationModel
 from sqlalchemy.orm import  joinedload
 from sqlalchemy import desc, asc
+from ...models.admin_user import AdminUser
 
 
 
@@ -42,9 +43,9 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
         user_id = auth_user["id"]
         description=request.description
         subject = request.subject
-        user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
-        
-        user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
+        user_obj = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+        if auth_user["role_id"] ==5:
+            user_obj = db.query(CustomerModal).filter(CustomerModal.id == user_id).first()
         if user_obj is None:            
             return Utility.json_response(status=500, message=all_messages.USER_NOT_EXISTS, error=[], data={},code="LOGOUT_ACCOUNT")            
         # elif user_obj.role_id !=2:            
@@ -60,7 +61,12 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
         #     return Utility.json_response(status=500, message=all_messages.PROFILE_DELETED, error=[], data={},code="LOGOUT_ACCOUNT")
         
         reference = Utility.uuid()
-        ticket_data = TicketsModel(user_id=user_id,subject =subject, description=description,reference= reference)
+        ticket_data = TicketsModel(subject =subject, description=description,reference= reference)
+        if auth_user["role_id"] ==5: 
+            ticket_data.created_by_user_id = user_id
+        else:
+            ticket_data.created_by_admin_id = user_id
+
         db.add(ticket_data)
         db.commit()
         #Send acknowledge mail to user 
@@ -100,7 +106,7 @@ async def get_users(filter_data: TicketListRequest,auth_user=Depends(AuthHandler
         search = f"%{filter_data.user_id}%"
         query = query.filter(
             or_(
-                TicketsModel.user_id.ilike(search)
+                TicketsModel.created_by_user_id.ilike(search)
                 
             )
         )

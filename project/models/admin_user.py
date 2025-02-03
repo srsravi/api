@@ -77,8 +77,8 @@ class AdminUser(BaseModel):
     my_applications = relationship("LoanapplicationModel", back_populates="created_by_details")
     user_configuration = relationship('ServiceConfigurationModel', back_populates='user_details')
     my_customers = relationship("CustomerDetailsModel", back_populates="updated_by_details")
-    
-      
+    my_comments_ticket = relationship("TicketCommentsModel", back_populates="admin_details")  
+    my_tickets = relationship("TicketsModel", back_populates="created_by_admin_details")
 
 
     class Config:
