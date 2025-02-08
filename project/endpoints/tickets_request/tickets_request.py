@@ -87,10 +87,10 @@ def request_ticket(request: TicketRequest,background_tasks: BackgroundTasks, aut
                 
                 admin_mail_data = {"user_name":user_obj.first_name +" "+user_obj.last_name, "admin_name":auth_user["tenant_details"]["name"],"subject":subject, "description":description,"mail_to":"admin","reference":reference}
                 background_tasks.add_task(Email.send_mail,recipient_email=[auth_user["tenant_details"]["email"]], subject="Ticket Created", template='ticket_created.html',data=admin_mail_data )
-            if ticket_data.id:
-                admin_notification = AdminNotificationModel(user_id=user_id,admin_id=admin_id,description=description,category="TICKET",ref_id=ticket_data.id)
-                db.add(admin_notification)
-                db.commit()
+            # if ticket_data.id:
+            #     admin_notification = AdminNotificationModel(user_id=user_id,admin_id=admin_id,description=description,category="TICKET",ref_id=ticket_data.id)
+            #     db.add(admin_notification)
+            #     db.commit()
         return Utility.json_response(status=SUCCESS, message=all_messages.TICKET_CREATED, error=[], data={},code="")
 
     except Exception as E:

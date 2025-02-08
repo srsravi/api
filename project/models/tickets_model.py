@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 #from project.database.database import Base
@@ -22,7 +22,7 @@ class TicketsModel(BaseModel):
     reference = Column(String(150), nullable=True)
     tenant_id = Column(Integer, nullable=True, default=None)
     ticketcomments = relationship("TicketCommentsModel", back_populates="ticket_details")
-
+    status = Column(Boolean, default=True)
 class TicketCommentsModel(BaseModel):
     __tablename__ = "ticket_comments"
     
