@@ -53,12 +53,12 @@ class Email():
             # Create the root message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = "noreply@tfsfinserv.com"#sender_email
+            msg['From'] = "noreply@appmail.tfsfinserv.com"#sender_email
             msg['To'] = ', '.join(recipient_email)
             smtp_server = "smtp.zeptomail.in"
             sender_email="emailapikey"
+            #sender_password = "PHtE6r1ZQb3riGMtoBNR4/XuH8OmPYJ/r+4xKwkSs9lKDPcAGU1T+NkvwzCyrxl/VvhFQvKcmo1psriU4u3RIm7qMj4YXGqyqK3sx/VYSPOZsbq6x00fslQTcUzeXIPqctVo1iLXv9zSNA=="
             sender_password = "PHtE6r1ZQb3riGMtoBNR4/XuH8OmPYJ/r+4xKwkSs9lKDPcAGU1T+NkvwzCyrxl/VvhFQvKcmo1psriU4u3RIm7qMj4YXGqyqK3sx/VYSPOZsbq6x00fslQTcUzeXIPqctVo1iLXv9zSNA=="
-            
 
             # Create the body of the message (a plain-text and an HTML version)
             body = data.get("body","")
