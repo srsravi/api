@@ -313,7 +313,22 @@ async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHan
         
         if "created_by" in temp_item and temp_item["created_by"] is not None:
             temp_item["created_by_details"] = Utility.model_to_dict(item.created_by_details)
+        elif "creted_by_customer_id" in temp_item and temp_item["creted_by_customer_id"] is not None:
+            creted_by_customer =  db.query(CustomerModal).filter(CustomerModal.id==temp_item["creted_by_customer_id"]).first()
+            if creted_by_customer is not None:
+                created_by_details = Utility.model_to_dict(creted_by_customer)
+                temp_item["created_by_details"]  = {
+                "id":created_by_details["id"],
+                "first_name":created_by_details["first_name"],
+                "last_name":created_by_details["last_name"],
+                "name":created_by_details["name"],
+                "mobile_no":created_by_details["mobile_no"],
+                "date_of_birth":created_by_details["date_of_birth"],
+                "email":created_by_details["email"],
+                "gender":created_by_details["gender"],
+                "role_id":created_by_details["role_id"],
 
+            }
         if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
             temp_item["service_details"] = Utility.model_to_dict(item.service_details)
         if item.loan_applications_list is not None:
@@ -426,6 +441,22 @@ async def get_customers(filter_data: UserFilterRequest,auth_user=Depends(AuthHan
 
             }
             temp_item["created_by_details"] = created_bydetails
+        elif "creted_by_customer_id" in temp_item and temp_item["creted_by_customer_id"] is not None:
+            creted_by_customer =  db.query(CustomerModal).filter(CustomerModal.id==temp_item["creted_by_customer_id"]).first()
+            if creted_by_customer is not None:
+                created_by_details = Utility.model_to_dict(creted_by_customer)
+                temp_item["created_by_details"]  = {
+                "id":created_by_details["id"],
+                "first_name":created_by_details["first_name"],
+                "last_name":created_by_details["last_name"],
+                "name":created_by_details["name"],
+                "mobile_no":created_by_details["mobile_no"],
+                "date_of_birth":created_by_details["date_of_birth"],
+                "email":created_by_details["email"],
+                "gender":created_by_details["gender"],
+                "role_id":created_by_details["role_id"],
+
+            }
 
         if "service_type_id" in temp_item and temp_item["service_type_id"] is not None:
             temp_item["service_details"] = Utility.model_to_dict(item.service_details)
@@ -585,6 +616,12 @@ async def update_customer_details( request: Dict, background_tasks: BackgroundTa
                                       service_type_id=request.get("service_type_id",None),
                                       date_of_birth = request.get("date_of_birth",None)
                                       )
+        
+        if role_id ==5:
+            new_customer.creted_by_customer_id = auth_user["id"]
+        else:
+            new_customer.created_by = auth_user["id"]
+
         db.add(new_customer)
         db.commit()
         enquiry_data.status_id =2

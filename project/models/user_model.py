@@ -121,6 +121,8 @@ class CustomerModal(BaseModel):
     created_by_details = relationship("AdminUser", back_populates="my_users")
     accepted_terms = Column(Boolean, default=False)
 
+    creted_by_customer_id = Column(Integer, nullable=True, default=None )
+
     #md_subscription_plans MdSubscriptionPlansModel
     current_plan_id = Column(Integer, ForeignKey("md_subscription_plans.id"), nullable=True, default=None )
     current_plan_details = relationship("MdSubscriptionPlansModel", back_populates="subscription_plan_customers")
